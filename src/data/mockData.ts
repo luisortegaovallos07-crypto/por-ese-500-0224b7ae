@@ -240,78 +240,7 @@ export const mockNoticias: Noticia[] = [
 // ============================================
 // EVENTOS DEL CALENDARIO
 // ============================================
-export const mockEventos: Evento[] = [
-  {
-    id: 'evt-001',
-    titulo: 'Simulacro de Matemáticas',
-    descripcion: 'Evaluación diagnóstica de matemáticas - 50 preguntas',
-    fecha: '2026-02-01',
-    hora: '09:00',
-    tipo: 'simulacro',
-    materia: 'Matemáticas',
-  },
-  {
-    id: 'evt-002',
-    titulo: 'Taller de Lectura Crítica',
-    descripcion: 'Estrategias de análisis textual',
-    fecha: '2026-01-25',
-    hora: '15:00',
-    tipo: 'taller',
-    materia: 'Lectura Crítica',
-  },
-  {
-    id: 'evt-003',
-    titulo: 'Simulacro General',
-    descripcion: 'Primer simulacro completo del año - Todas las materias',
-    fecha: '2026-02-15',
-    hora: '08:00',
-    tipo: 'examen',
-  },
-  {
-    id: 'evt-004',
-    titulo: 'Entrega de Ejercicios Sociales',
-    descripcion: 'Fecha límite para entregar ejercicios del módulo 1',
-    fecha: '2026-02-10',
-    hora: '23:59',
-    tipo: 'entrega',
-    materia: 'Sociales',
-  },
-  {
-    id: 'evt-005',
-    titulo: 'Reunión de Orientación',
-    descripcion: 'Sesión informativa para estudiantes nuevos',
-    fecha: '2026-01-30',
-    hora: '10:00',
-    tipo: 'reunion',
-  },
-  {
-    id: 'evt-006',
-    titulo: 'Simulacro de Inglés',
-    descripcion: 'Evaluación de comprensión lectora en inglés',
-    fecha: '2026-02-05',
-    hora: '14:00',
-    tipo: 'simulacro',
-    materia: 'Inglés',
-  },
-  {
-    id: 'evt-007',
-    titulo: 'Taller de Ciencias Naturales',
-    descripcion: 'Resolución de problemas de física y química',
-    fecha: '2026-02-08',
-    hora: '16:00',
-    tipo: 'taller',
-    materia: 'Ciencias Naturales',
-  },
-  {
-    id: 'evt-008',
-    titulo: 'Simulacro de Sociales',
-    descripcion: 'Evaluación de competencias ciudadanas',
-    fecha: '2026-02-20',
-    hora: '09:00',
-    tipo: 'simulacro',
-    materia: 'Sociales',
-  },
-];
+export const mockEventos: Evento[] = [];
 
 // ============================================
 // RESULTADOS DE SIMULACROS
