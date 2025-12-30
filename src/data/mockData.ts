@@ -65,6 +65,17 @@ export interface MaterialEstudio {
   fecha: string;
 }
 
+// Interface para preguntas de simulacros
+export interface Pregunta {
+  id: string;
+  materiaId: string;
+  texto: string;
+  opciones: string[];
+  respuestaCorrecta: number; // índice de la opción correcta (0-3)
+  explicacion?: string;
+  activa: boolean;
+}
+
 // ============================================
 // USUARIOS DE PRUEBA
 // ============================================
@@ -391,6 +402,11 @@ export const mockMaterial: MaterialEstudio[] = [
 ];
 
 // ============================================
+// PREGUNTAS DE SIMULACROS
+// ============================================
+export const mockPreguntas: Pregunta[] = [];
+
+// ============================================
 // ESTADÍSTICAS GLOBALES (para Admin)
 // ============================================
 export const mockEstadisticas = {
@@ -398,9 +414,9 @@ export const mockEstadisticas = {
   totalEstudiantes: mockUsers.filter(u => u.role === 'estudiante').length,
   totalProfesores: mockUsers.filter(u => u.role === 'profesor').length,
   totalSimulacrosRealizados: mockResultados.length,
-  promedioGeneral: Math.round(
-    mockResultados.reduce((acc, r) => acc + r.puntaje, 0) / mockResultados.length
-  ),
+  promedioGeneral: mockResultados.length > 0 
+    ? Math.round(mockResultados.reduce((acc, r) => acc + r.puntaje, 0) / mockResultados.length)
+    : 0,
   materiasActivas: mockMaterias.length,
   eventosProximos: mockEventos.filter(e => new Date(e.fecha) > new Date('2026-01-20')).length,
 };
