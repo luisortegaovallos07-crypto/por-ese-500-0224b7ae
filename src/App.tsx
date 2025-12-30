@@ -37,7 +37,7 @@ const App = () => (
             <Route path="/noticias" element={<ProtectedRoute><Noticias /></ProtectedRoute>} />
             <Route path="/noticias/:id" element={<ProtectedRoute><Noticias /></ProtectedRoute>} />
             <Route path="/calendario" element={<ProtectedRoute><Calendario /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><Admin /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin', 'profesor']}><Admin /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
