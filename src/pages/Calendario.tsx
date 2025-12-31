@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
-import { mockEventos, Evento, mockMaterias } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -11,8 +11,7 @@ import {
   Pencil,
   Trash2,
   Clock,
-  Save,
-  X
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,16 +24,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
-// Estado local para eventos
-let eventosData = [...mockEventos];
+interface Evento {
+  id: string;
+  titulo: string;
+  descripcion: string | null;
+  fecha: string;
+  hora: string | null;
+  tipo: string;
+  materia_id: string | null;
+}
+
+interface Materia {
+  id: string;
+  nombre: string;
+}
 
 interface EventoFormData {
   titulo: string;
   descripcion: string;
   fecha: string;
   hora: string;
-  tipo: 'simulacro' | 'taller' | 'entrega' | 'reunion' | 'examen';
-  materia: string;
+  tipo: string;
+  materia_id: string;
 }
 
 const initialFormData: EventoFormData = {
@@ -43,7 +54,7 @@ const initialFormData: EventoFormData = {
   fecha: '',
   hora: '',
   tipo: 'simulacro',
-  materia: '',
+  materia_id: '',
 };
 
 const getEventColor = (tipo: string) => {
@@ -52,6 +63,7 @@ const getEventColor = (tipo: string) => {
     case 'taller': return 'bg-success text-success-foreground';
     case 'entrega': return 'bg-warning text-warning-foreground';
     case 'examen': return 'bg-destructive text-destructive-foreground';
+    case 'reunion': return 'bg-accent text-accent-foreground';
     default: return 'bg-muted text-muted-foreground';
   }
 };
@@ -68,12 +80,15 @@ const getTipoLabel = (tipo: string) => {
 };
 
 const Calendario: React.FC = () => {
-  const { isAdmin, isProfesor } = useAuth();
+  const { isAdmin, isProfesor, user } = useAuth();
   const { toast } = useToast();
   const canManageEvents = isAdmin || isProfesor;
 
-  const [eventos, setEventos] = useState<Evento[]>(eventosData);
-  const [currentDate, setCurrentDate] = useState(new Date('2026-02-01'));
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [materias, setMaterias] = useState<Materia[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -93,6 +108,36 @@ const Calendario: React.FC = () => {
   const days: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
+  // Cargar datos
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [eventosRes, materiasRes] = await Promise.all([
+          supabase.from('eventos').select('*').order('fecha', { ascending: true }),
+          supabase.from('materias').select('id, nombre').order('nombre')
+        ]);
+
+        if (eventosRes.error) throw eventosRes.error;
+        if (materiasRes.error) throw materiasRes.error;
+
+        setEventos(eventosRes.data || []);
+        setMaterias(materiasRes.data || []);
+      } catch (error: any) {
+        console.error('Error fetching data:', error);
+        toast({
+          title: 'Error',
+          description: 'No se pudieron cargar los eventos.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
   
   const getEventsForDay = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -103,32 +148,24 @@ const Calendario: React.FC = () => {
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
   const upcomingEvents = eventos
-    .filter(e => new Date(e.fecha) >= new Date('2026-01-01'))
+    .filter(e => new Date(e.fecha) >= new Date())
     .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
     .slice(0, 5);
 
-  // Validar formulario
   const validateForm = (): boolean => {
     const errors: Partial<Record<keyof EventoFormData, string>> = {};
 
     if (!formData.titulo.trim()) {
       errors.titulo = 'El título es requerido';
     }
-    if (!formData.descripcion.trim()) {
-      errors.descripcion = 'La descripción es requerida';
-    }
     if (!formData.fecha) {
       errors.fecha = 'La fecha es requerida';
-    }
-    if (!formData.hora) {
-      errors.hora = 'La hora es requerida';
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Abrir diálogo para crear
   const handleOpenCreateDialog = () => {
     const today = new Date();
     setFormData({
@@ -141,15 +178,14 @@ const Calendario: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  // Abrir diálogo para editar
   const handleOpenEditDialog = (evento: Evento) => {
     setFormData({
       titulo: evento.titulo,
-      descripcion: evento.descripcion,
+      descripcion: evento.descripcion || '',
       fecha: evento.fecha,
-      hora: evento.hora,
+      hora: evento.hora || '',
       tipo: evento.tipo,
-      materia: evento.materia || '',
+      materia_id: evento.materia_id || '',
     });
     setFormErrors({});
     setIsEditing(true);
@@ -157,7 +193,6 @@ const Calendario: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  // Cerrar diálogo
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setFormData(initialFormData);
@@ -166,7 +201,6 @@ const Calendario: React.FC = () => {
     setEditingEventId(null);
   };
 
-  // Manejar cambios en el formulario
   const handleInputChange = (field: keyof EventoFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (formErrors[field]) {
@@ -174,84 +208,114 @@ const Calendario: React.FC = () => {
     }
   };
 
-  // Crear evento
-  const handleCreateEvent = () => {
-    if (!validateForm()) return;
+  const handleCreateEvent = async () => {
+    if (!validateForm() || !user) return;
 
-    const newEvento: Evento = {
-      id: `evt-${Date.now()}`,
-      titulo: formData.titulo.trim(),
-      descripcion: formData.descripcion.trim(),
-      fecha: formData.fecha,
-      hora: formData.hora,
-      tipo: formData.tipo,
-      materia: formData.materia || undefined,
-    };
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.from('eventos').insert({
+        titulo: formData.titulo.trim(),
+        descripcion: formData.descripcion.trim() || null,
+        fecha: formData.fecha,
+        hora: formData.hora || null,
+        tipo: formData.tipo,
+        materia_id: formData.materia_id || null,
+        created_by: user.id,
+      }).select().single();
 
-    const updatedEventos = [...eventos, newEvento];
-    setEventos(updatedEventos);
-    eventosData = updatedEventos;
+      if (error) throw error;
 
-    toast({
-      title: 'Evento creado',
-      description: `El evento "${newEvento.titulo}" ha sido creado exitosamente.`,
-    });
-
-    handleCloseDialog();
+      setEventos(prev => [...prev, data]);
+      toast({
+        title: 'Evento creado',
+        description: `El evento "${data.titulo}" ha sido creado exitosamente.`,
+      });
+      handleCloseDialog();
+    } catch (error: any) {
+      console.error('Error creating event:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo crear el evento.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Actualizar evento
-  const handleUpdateEvent = () => {
+  const handleUpdateEvent = async () => {
     if (!validateForm() || !editingEventId) return;
 
-    const updatedEventos = eventos.map(evento => {
-      if (evento.id === editingEventId) {
-        return {
-          ...evento,
-          titulo: formData.titulo.trim(),
-          descripcion: formData.descripcion.trim(),
-          fecha: formData.fecha,
-          hora: formData.hora,
-          tipo: formData.tipo,
-          materia: formData.materia || undefined,
-        };
-      }
-      return evento;
-    });
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.from('eventos').update({
+        titulo: formData.titulo.trim(),
+        descripcion: formData.descripcion.trim() || null,
+        fecha: formData.fecha,
+        hora: formData.hora || null,
+        tipo: formData.tipo,
+        materia_id: formData.materia_id || null,
+      }).eq('id', editingEventId).select().single();
 
-    setEventos(updatedEventos);
-    eventosData = updatedEventos;
+      if (error) throw error;
 
-    toast({
-      title: 'Evento actualizado',
-      description: 'Los datos del evento han sido actualizados.',
-    });
-
-    handleCloseDialog();
+      setEventos(prev => prev.map(e => e.id === editingEventId ? data : e));
+      toast({
+        title: 'Evento actualizado',
+        description: 'Los datos del evento han sido actualizados.',
+      });
+      handleCloseDialog();
+    } catch (error: any) {
+      console.error('Error updating event:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo actualizar el evento.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Confirmar eliminación
   const handleConfirmDelete = (eventoId: string) => {
     setEventToDelete(eventoId);
     setDeleteConfirmOpen(true);
   };
 
-  // Eliminar evento
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = async () => {
     if (!eventToDelete) return;
 
-    const updatedEventos = eventos.filter(e => e.id !== eventToDelete);
-    setEventos(updatedEventos);
-    eventosData = updatedEventos;
+    try {
+      const { error } = await supabase.from('eventos').delete().eq('id', eventToDelete);
+      if (error) throw error;
 
-    toast({
-      title: 'Evento eliminado',
-      description: 'El evento ha sido eliminado del calendario.',
-    });
-
-    setDeleteConfirmOpen(false);
-    setEventToDelete(null);
+      setEventos(prev => prev.filter(e => e.id !== eventToDelete));
+      toast({
+        title: 'Evento eliminado',
+        description: 'El evento ha sido eliminado del calendario.',
+      });
+    } catch (error: any) {
+      console.error('Error deleting event:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar el evento.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setEventToDelete(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="page-container flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -260,7 +324,7 @@ const Calendario: React.FC = () => {
           <div>
             <h1 className="section-title flex items-center gap-3 mb-0">
               <CalendarDays className="h-8 w-8 text-primary" />
-              Calendario Académico 2026
+              Calendario Académico
             </h1>
             <p className="text-muted-foreground mt-2">Consulta y gestiona las fechas importantes del programa académico.</p>
           </div>
@@ -285,7 +349,6 @@ const Calendario: React.FC = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              {/* Nombres de los días */}
               <div className="grid grid-cols-7 gap-1 mb-2">
                 {dayNames.map(d => (
                   <div 
@@ -297,7 +360,6 @@ const Calendario: React.FC = () => {
                 ))}
               </div>
               
-              {/* Días del mes */}
               <div className="grid grid-cols-7 gap-1">
                 {days.map((day, i) => {
                   const dayEvents = day ? getEventsForDay(day) : [];
@@ -367,17 +429,21 @@ const Calendario: React.FC = () => {
                       <span className="font-medium text-sm line-clamp-1 flex-1">{e.titulo}</span>
                       <Badge className={getEventColor(e.tipo)}>{getTipoLabel(e.tipo)}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{e.descripcion}</p>
+                    {e.descripcion && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{e.descripcion}</p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <CalIcon className="h-3 w-3" />
                           {new Date(e.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {e.hora}
-                        </span>
+                        {e.hora && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {e.hora}
+                          </span>
+                        )}
                       </div>
                       {canManageEvents && (
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -432,7 +498,6 @@ const Calendario: React.FC = () => {
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
-              {/* Título */}
               <div className="grid gap-2">
                 <Label htmlFor="titulo">Título *</Label>
                 <Input
@@ -447,23 +512,17 @@ const Calendario: React.FC = () => {
                 )}
               </div>
 
-              {/* Descripción */}
               <div className="grid gap-2">
-                <Label htmlFor="descripcion">Descripción *</Label>
+                <Label htmlFor="descripcion">Descripción</Label>
                 <Textarea
                   id="descripcion"
                   placeholder="Detalles del evento"
                   value={formData.descripcion}
                   onChange={e => handleInputChange('descripcion', e.target.value)}
-                  className={formErrors.descripcion ? 'border-destructive' : ''}
                   rows={3}
                 />
-                {formErrors.descripcion && (
-                  <p className="text-xs text-destructive">{formErrors.descripcion}</p>
-                )}
               </div>
 
-              {/* Fecha y Hora */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="fecha">Fecha *</Label>
@@ -479,78 +538,70 @@ const Calendario: React.FC = () => {
                   )}
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="hora">Hora *</Label>
+                  <Label htmlFor="hora">Hora</Label>
                   <Input
                     id="hora"
                     type="time"
                     value={formData.hora}
                     onChange={e => handleInputChange('hora', e.target.value)}
-                    className={formErrors.hora ? 'border-destructive' : ''}
                   />
-                  {formErrors.hora && (
-                    <p className="text-xs text-destructive">{formErrors.hora}</p>
-                  )}
                 </div>
               </div>
 
-              {/* Tipo */}
-              <div className="grid gap-2">
-                <Label htmlFor="tipo">Tipo de Evento *</Label>
-                <Select
-                  value={formData.tipo}
-                  onValueChange={(value: EventoFormData['tipo']) => handleInputChange('tipo', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="simulacro">Simulacro</SelectItem>
-                    <SelectItem value="taller">Taller</SelectItem>
-                    <SelectItem value="entrega">Entrega</SelectItem>
-                    <SelectItem value="reunion">Reunión</SelectItem>
-                    <SelectItem value="examen">Examen</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Materia (opcional) */}
-              <div className="grid gap-2">
-                <Label htmlFor="materia">Materia (opcional)</Label>
-                <Select
-                  value={formData.materia}
-                  onValueChange={(value) => handleInputChange('materia', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una materia" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sin materia específica</SelectItem>
-                    {mockMaterias.map(m => (
-                      <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="tipo">Tipo *</Label>
+                  <Select value={formData.tipo} onValueChange={val => handleInputChange('tipo', val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="simulacro">Simulacro</SelectItem>
+                      <SelectItem value="taller">Taller</SelectItem>
+                      <SelectItem value="entrega">Entrega</SelectItem>
+                      <SelectItem value="reunion">Reunión</SelectItem>
+                      <SelectItem value="examen">Examen</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="materia">Materia</Label>
+                  <Select value={formData.materia_id} onValueChange={val => handleInputChange('materia_id', val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Opcional" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin materia</SelectItem>
+                      {materias.map(m => (
+                        <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={handleCloseDialog}>
-                <X className="h-4 w-4 mr-2" />
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseDialog} disabled={saving}>
                 Cancelar
               </Button>
-              <Button onClick={isEditing ? handleUpdateEvent : handleCreateEvent}>
-                <Save className="h-4 w-4 mr-2" />
+              <Button 
+                onClick={isEditing ? handleUpdateEvent : handleCreateEvent} 
+                disabled={saving}
+                className="gap-2"
+              >
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isEditing ? 'Guardar Cambios' : 'Crear Evento'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Confirmación de eliminación */}
+        {/* Diálogo de confirmación de eliminación */}
         <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>¿Eliminar evento?</AlertDialogTitle>
+              <AlertDialogTitle>¿Eliminar este evento?</AlertDialogTitle>
               <AlertDialogDescription>
                 Esta acción no se puede deshacer. El evento será eliminado permanentemente del calendario.
               </AlertDialogDescription>
