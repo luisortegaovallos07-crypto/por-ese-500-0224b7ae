@@ -12,6 +12,8 @@ import {
   Award,
   ArrowRight,
   CheckCircle,
+  GraduationCap,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -36,13 +38,6 @@ const features = [
     title: 'Calendario',
     description: 'Mantente al día con eventos y fechas importantes',
   },
-];
-
-const stats = [
-  { value: '500+', label: 'Estudiantes' },
-  { value: '5', label: 'Materias' },
-  { value: '100+', label: 'Simulacros' },
-  { value: '95%', label: 'Satisfacción' },
 ];
 
 const Index: React.FC = () => {
@@ -112,7 +107,7 @@ const Index: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-semibold">Resultados Comprobados</p>
-                    <p className="text-sm text-muted-foreground">+95% de satisfacción</p>
+                    <p className="text-sm text-muted-foreground">100% de satisfacción</p>
                   </div>
                 </div>
               </div>
@@ -121,21 +116,40 @@ const Index: React.FC = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Stats Section - Fixed Visual Data */}
       <section className="py-12 bg-primary">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div
-                key={stat.label}
-                className={`text-center animate-fade-in stagger-${index + 1}`}
-              >
-                <p className="text-3xl md:text-4xl font-bold text-primary-foreground">
-                  {stat.value}
-                </p>
-                <p className="text-primary-foreground/80 mt-1">{stat.label}</p>
+            <div className="text-center animate-fade-in stagger-1">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <GraduationCap className="h-6 w-6 text-primary-foreground/80" />
               </div>
-            ))}
+              <p className="text-3xl md:text-4xl font-bold text-primary-foreground">
+                +2.000
+              </p>
+              <p className="text-primary-foreground/80 mt-1">Estudiantes</p>
+            </div>
+            <div className="text-center animate-fade-in stagger-2">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Star className="h-6 w-6 text-primary-foreground/80" />
+              </div>
+              <p className="text-3xl md:text-4xl font-bold text-primary-foreground">
+                100%
+              </p>
+              <p className="text-primary-foreground/80 mt-1">Satisfacción</p>
+            </div>
+            <div className="text-center animate-fade-in stagger-3">
+              <p className="text-3xl md:text-4xl font-bold text-primary-foreground">
+                5
+              </p>
+              <p className="text-primary-foreground/80 mt-1">Materias</p>
+            </div>
+            <div className="text-center animate-fade-in stagger-4">
+              <p className="text-3xl md:text-4xl font-bold text-primary-foreground">
+                500
+              </p>
+              <p className="text-primary-foreground/80 mt-1">Puntaje Meta</p>
+            </div>
           </div>
         </div>
       </section>

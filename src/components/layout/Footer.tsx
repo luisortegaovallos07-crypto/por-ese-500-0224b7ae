@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import logoMain from '@/assets/logo-main.jpeg';
+import { Mail, Phone, MapPin } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const currentYear = 2026;
@@ -51,10 +52,19 @@ export const Footer: React.FC = () => {
           {/* Contact Info */}
           <div>
             <h4 className="font-semibold mb-4 text-foreground">Contacto</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>info@porese500.edu</li>
-              <li>+57 (1) 234 5678</li>
-              <li>Bogotá, Colombia</li>
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-primary" />
+                porese500@porese500.com
+              </li>
+              <li className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-primary" />
+                3127355132
+              </li>
+              <li className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                Aguachica, Cesar, Colombia
+              </li>
             </ul>
           </div>
         </div>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/data/mockData';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,8 +13,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   allowedRoles,
   requireAuth = true,
 }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { profile, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   // If authentication is required but user is not authenticated
   if (requireAuth && !isAuthenticated) {
@@ -23,7 +34,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // If specific roles are required, check if user has one of them
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
     // Redirect to dashboard if user doesn't have permission
     return <Navigate to="/dashboard" replace />;
   }
@@ -39,9 +50,9 @@ interface RoleGateProps {
 }
 
 export const RoleGate: React.FC<RoleGateProps> = ({ children, allowedRoles, fallback = null }) => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
-  if (!user || !allowedRoles.includes(user.role)) {
+  if (!profile || !allowedRoles.includes(profile.role)) {
     return <>{fallback}</>;
   }
 

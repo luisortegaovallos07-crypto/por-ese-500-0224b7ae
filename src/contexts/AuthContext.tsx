@@ -1,86 +1,223 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, mockUsers, UserRole } from '@/data/mockData';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+
+export type UserRole = 'admin' | 'profesor' | 'estudiante';
+
+export interface UserProfile {
+  id: string;
+  nombre: string;
+  email: string;
+  activo: boolean;
+  role: UserRole;
+}
 
 interface AuthContextType {
   user: User | null;
+  profile: UserProfile | null;
+  session: Session | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  signup: (email: string, password: string, nombre: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  isLoading: boolean;
   isAdmin: boolean;
   isProfesor: boolean;
   isEstudiante: boolean;
   canManageUsers: boolean;
   canManageContent: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'porese500_user';
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      // Get profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return null;
+      }
+
+      if (!profileData) {
+        return null;
+      }
+
+      // Get role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (roleError) {
+        console.error('Error fetching role:', roleError);
+      }
+
+      const userProfile: UserProfile = {
+        id: profileData.id,
+        nombre: profileData.nombre,
+        email: profileData.email,
+        activo: profileData.activo ?? true,
+        role: (roleData?.role as UserRole) || 'estudiante',
+      };
+
+      return userProfile;
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+      return null;
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      const userProfile = await fetchProfile(user.id);
+      setProfile(userProfile);
+    }
+  };
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem(STORAGE_KEY);
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        // Verify user still exists and is active
-        const validUser = mockUsers.find(u => u.id === parsedUser.id && u.activo);
-        if (validUser) {
-          setUser(validUser);
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Defer profile fetch with setTimeout to avoid deadlock
+        if (session?.user) {
+          setTimeout(() => {
+            fetchProfile(session.user.id).then(setProfile);
+          }, 0);
         } else {
-          localStorage.removeItem(STORAGE_KEY);
+          setProfile(null);
         }
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
       }
-    }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchProfile(session.user.id).then(userProfile => {
+          setProfile(userProfile);
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    const foundUser = mockUsers.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          return { success: false, error: 'Credenciales inválidas. Verifica tu correo y contraseña.' };
+        }
+        return { success: false, error: error.message };
+      }
 
-    if (!foundUser) {
-      return { success: false, error: 'Credenciales inválidas. Verifica tu correo y contraseña.' };
+      if (data.user) {
+        const userProfile = await fetchProfile(data.user.id);
+        if (userProfile && !userProfile.activo) {
+          await supabase.auth.signOut();
+          return { success: false, error: 'Tu cuenta está desactivada. Contacta al administrador.' };
+        }
+        setProfile(userProfile);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: 'Error al iniciar sesión. Intenta nuevamente.' };
     }
-
-    if (!foundUser.activo) {
-      return { success: false, error: 'Tu cuenta está desactivada. Contacta al administrador.' };
-    }
-
-    setUser(foundUser);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(foundUser));
-    return { success: true };
   };
 
-  const logout = () => {
+  const signup = async (email: string, password: string, nombre: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            nombre: nombre.trim(),
+          },
+        },
+      });
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          return { success: false, error: 'Este correo ya está registrado. Intenta iniciar sesión.' };
+        }
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        // Wait a moment for the trigger to create the profile
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const userProfile = await fetchProfile(data.user.id);
+        setProfile(userProfile);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Signup error:', error);
+      return { success: false, error: 'Error al registrarse. Intenta nuevamente.' };
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
+    setSession(null);
+    setProfile(null);
   };
 
-  const isAdmin = user?.role === 'admin';
-  const isProfesor = user?.role === 'profesor';
-  const isEstudiante = user?.role === 'estudiante';
-  const canManageUsers = isAdmin || isProfesor;
+  const isAdmin = profile?.role === 'admin';
+  const isProfesor = profile?.role === 'profesor';
+  const isEstudiante = profile?.role === 'estudiante';
+  const canManageUsers = isAdmin;
   const canManageContent = isAdmin || isProfesor;
 
   const value: AuthContextType = {
     user,
+    profile,
+    session,
     login,
+    signup,
     logout,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!profile,
+    isLoading,
     isAdmin,
     isProfesor,
     isEstudiante,
     canManageUsers,
     canManageContent,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -92,11 +229,4 @@ export const useAuth = (): AuthContextType => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-// Helper to check if user has specific role(s)
-export const hasRole = (user: User | null, roles: UserRole | UserRole[]): boolean => {
-  if (!user) return false;
-  const roleArray = Array.isArray(roles) ? roles : [roles];
-  return roleArray.includes(user.role);
 };

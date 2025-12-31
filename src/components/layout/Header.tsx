@@ -40,13 +40,13 @@ const navItems = [
 ];
 
 export const Header: React.FC = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { profile, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
     setMobileMenuOpen(false);
   };
@@ -58,7 +58,7 @@ export const Header: React.FC = () => {
   });
 
   const getRoleLabel = () => {
-    switch (user?.role) {
+    switch (profile?.role) {
       case 'admin': return 'Administrador';
       case 'profesor': return 'Profesor';
       case 'estudiante': return 'Estudiante';
@@ -67,7 +67,7 @@ export const Header: React.FC = () => {
   };
 
   const getRoleBadgeClass = () => {
-    switch (user?.role) {
+    switch (profile?.role) {
       case 'admin': return 'bg-primary/10 text-primary';
       case 'profesor': return 'bg-success/10 text-success';
       case 'estudiante': return 'bg-accent text-accent-foreground';
@@ -126,7 +126,7 @@ export const Header: React.FC = () => {
 
           {/* User Menu / Auth Buttons */}
           <div className="hidden lg:flex items-center gap-3">
-            {isAuthenticated && user ? (
+            {isAuthenticated && profile ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 px-3">
@@ -134,7 +134,7 @@ export const Header: React.FC = () => {
                       <User className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="text-sm font-medium">{user.nombre}</span>
+                      <span className="text-sm font-medium">{profile.nombre}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeClass()}`}>
                         {getRoleLabel()}
                       </span>
@@ -212,14 +212,14 @@ export const Header: React.FC = () => {
               </RoleGate>
 
               <div className="border-t border-border mt-2 pt-2">
-                {isAuthenticated && user ? (
+                {isAuthenticated && profile ? (
                   <>
                     <div className="px-4 py-2 flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                         <User className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium">{user.nombre} {user.apellido}</p>
+                        <p className="font-medium">{profile.nombre}</p>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeClass()}`}>
                           {getRoleLabel()}
                         </span>
