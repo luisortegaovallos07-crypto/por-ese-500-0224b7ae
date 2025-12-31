@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { credencialesPrueba } from '@/data/mockData';
 import logoMain from '@/assets/logo-main.jpeg';
-import { Mail, Lock, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, ArrowRight, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nombre, setNombre] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('login');
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,9 +33,10 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, navigate, from]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setIsLoading(true);
 
     const result = await login(email, password);
@@ -46,11 +50,34 @@ const Login: React.FC = () => {
     setIsLoading(false);
   };
 
-  const fillCredentials = (type: 'admin' | 'profesor' | 'estudiante') => {
-    const creds = credencialesPrueba[type];
-    setEmail(creds.email);
-    setPassword(creds.password);
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError('');
+    setSuccess('');
+    setIsLoading(true);
+
+    if (!nombre.trim()) {
+      setError('Por favor ingresa tu nombre completo');
+      setIsLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      setIsLoading(false);
+      return;
+    }
+
+    const result = await signup(email, password, nombre);
+
+    if (result.success) {
+      setSuccess('¡Cuenta creada exitosamente! Ya puedes acceder a la plataforma.');
+      setActiveTab('login');
+    } else {
+      setError(result.error || 'Error al registrarse');
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -83,7 +110,7 @@ const Login: React.FC = () => {
                 </div>
               ))}
             </div>
-            <p className="text-white/80 text-sm">+500 estudiantes preparándose</p>
+            <p className="text-white/80 text-sm">+2.000 estudiantes preparándose</p>
           </div>
         </div>
 
@@ -92,7 +119,7 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
+      {/* Right Side - Login/Signup Form */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
         <div className="w-full max-w-md space-y-8 animate-fade-in">
           {/* Mobile Logo */}
@@ -103,122 +130,168 @@ const Login: React.FC = () => {
           </div>
 
           <Card className="border-0 shadow-card">
-            <CardHeader className="space-y-1 text-center pb-6">
-              <CardTitle className="text-2xl font-bold">Iniciar Sesión</CardTitle>
+            <CardHeader className="space-y-1 text-center pb-4">
+              <CardTitle className="text-2xl font-bold">Bienvenido</CardTitle>
               <CardDescription>
-                Ingresa tus credenciales para acceder a la plataforma
+                Accede a la plataforma de preparación académica
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
+                  <TabsTrigger value="signup">Registrarse</TabsTrigger>
+                </TabsList>
+
                 {error && (
-                  <Alert variant="destructive" className="animate-fade-in">
+                  <Alert variant="destructive" className="animate-fade-in mb-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Correo Electrónico</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="correo@ejemplo.com"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
+                {success && (
+                  <Alert className="animate-fade-in mb-4 border-success bg-success/10">
+                    <AlertCircle className="h-4 w-4 text-success" />
+                    <AlertDescription className="text-success">{success}</AlertDescription>
+                  </Alert>
+                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
+                <TabsContent value="login">
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Correo Electrónico</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="correo@ejemplo.com"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Ingresando...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      Ingresar
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  )}
-                </Button>
-              </form>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Contraseña</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          className="pl-10 pr-10"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
 
-              {/* Test Credentials */}
-              <div className="mt-8 pt-6 border-t border-border">
-                <p className="text-sm text-muted-foreground text-center mb-4">
-                  Credenciales de prueba:
-                </p>
-                <div className="grid grid-cols-1 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fillCredentials('admin')}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted transition-colors text-left"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">{credencialesPrueba.admin.nombre}</p>
-                      <p className="text-xs text-muted-foreground">{credencialesPrueba.admin.email}</p>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <span className="flex items-center gap-2">
+                          <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          Ingresando...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          Ingresar
+                          <ArrowRight className="h-4 w-4" />
+                        </span>
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="signup">
+                  <form onSubmit={handleSignup} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre">Nombre Completo</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="nombre"
+                          type="text"
+                          placeholder="Tu nombre completo"
+                          value={nombre}
+                          onChange={e => setNombre(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                      Admin
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fillCredentials('profesor')}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted transition-colors text-left"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">{credencialesPrueba.profesor.nombre}</p>
-                      <p className="text-xs text-muted-foreground">{credencialesPrueba.profesor.email}</p>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Correo Electrónico</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          placeholder="correo@ejemplo.com"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-success/10 text-success">
-                      Profesor
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fillCredentials('estudiante')}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted transition-colors text-left"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">{credencialesPrueba.estudiante.nombre}</p>
-                      <p className="text-xs text-muted-foreground">{credencialesPrueba.estudiante.email}</p>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Contraseña</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="signup-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Mínimo 6 caracteres"
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          className="pl-10 pr-10"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-accent text-accent-foreground">
-                      Estudiante
-                    </span>
-                  </button>
-                </div>
-              </div>
+
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <span className="flex items-center gap-2">
+                          <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          Creando cuenta...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          Crear Cuenta
+                          <ArrowRight className="h-4 w-4" />
+                        </span>
+                      )}
+                    </Button>
+
+                    <p className="text-xs text-muted-foreground text-center">
+                      Al registrarte, aceptas nuestros términos y condiciones.
+                    </p>
+                  </form>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
