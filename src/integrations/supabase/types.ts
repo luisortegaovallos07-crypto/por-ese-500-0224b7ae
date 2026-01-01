@@ -345,7 +345,50 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      preguntas_simulacro: {
+        Row: {
+          activa: boolean | null
+          id: string | null
+          imagen_url: string | null
+          materia_id: string | null
+          opcion_a: string | null
+          opcion_b: string | null
+          opcion_c: string | null
+          opcion_d: string | null
+          pregunta: string | null
+        }
+        Insert: {
+          activa?: boolean | null
+          id?: string | null
+          imagen_url?: string | null
+          materia_id?: string | null
+          opcion_a?: string | null
+          opcion_b?: string | null
+          opcion_c?: string | null
+          opcion_d?: string | null
+          pregunta?: string | null
+        }
+        Update: {
+          activa?: boolean | null
+          id?: string | null
+          imagen_url?: string | null
+          materia_id?: string | null
+          opcion_a?: string | null
+          opcion_b?: string | null
+          opcion_c?: string | null
+          opcion_d?: string | null
+          pregunta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preguntas_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "materias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
