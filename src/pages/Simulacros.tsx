@@ -63,6 +63,7 @@ interface Materia {
   tiempo_simulacro: number;
 }
 
+// Pregunta completa (para admin/profesor)
 interface Pregunta {
   id: string;
   materia_id: string;
@@ -75,6 +76,32 @@ interface Pregunta {
   explicacion: string | null;
   imagen_url: string | null;
   activa: boolean | null;
+}
+
+// Pregunta para simulacro (sin respuesta_correcta ni explicacion)
+interface PreguntaSimulacro {
+  id: string;
+  materia_id: string;
+  pregunta: string;
+  opcion_a: string;
+  opcion_b: string;
+  opcion_c: string;
+  opcion_d: string;
+  imagen_url: string | null;
+  activa: boolean | null;
+}
+
+// Resultado de verificación del simulacro
+interface VerifySimulacroResult {
+  correctas: number;
+  total: number;
+  puntaje: number;
+  detalles: Record<string, {
+    respuesta_usuario: string | null;
+    respuesta_correcta: string;
+    es_correcta: boolean;
+    explicacion: string | null;
+  }>;
 }
 
 interface PreguntaFormData {
@@ -124,7 +151,8 @@ const Simulacros: React.FC = () => {
 
   // Estados de datos
   const [materias, setMaterias] = useState<Materia[]>([]);
-  const [preguntas, setPreguntas] = useState<Pregunta[]>([]);
+  const [preguntas, setPreguntas] = useState<Pregunta[]>([]); // Solo para admin/profesor
+  const [preguntasEstudiante, setPreguntasEstudiante] = useState<PreguntaSimulacro[]>([]); // Para estudiantes
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -145,12 +173,13 @@ const Simulacros: React.FC = () => {
   // Estados del simulacro activo
   const [simulacroActivo, setSimulacroActivo] = useState(false);
   const [simulacroMateria, setSimulacroMateria] = useState<Materia | null>(null);
-  const [preguntasSimulacro, setPreguntasSimulacro] = useState<Pregunta[]>([]);
+  const [preguntasSimulacro, setPreguntasSimulacro] = useState<PreguntaSimulacro[]>([]);
   const [preguntaActual, setPreguntaActual] = useState(0);
   const [respuestas, setRespuestas] = useState<Record<string, string>>({});
   const [tiempoRestante, setTiempoRestante] = useState(0);
   const [tiempoInicial, setTiempoInicial] = useState(0);
   const [simulacroTerminado, setSimulacroTerminado] = useState(false);
+  const [resultadoVerificacion, setResultadoVerificacion] = useState<VerifySimulacroResult | null>(null);
   const [resultadoFinal, setResultadoFinal] = useState<{
     correctas: number;
     total: number;
@@ -164,16 +193,22 @@ const Simulacros: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [materiasRes, preguntasRes] = await Promise.all([
-          supabase.from('materias').select('*').order('nombre'),
-          supabase.from('preguntas').select('*').order('created_at', { ascending: false })
-        ]);
-
+        // Cargar materias para todos
+        const materiasRes = await supabase.from('materias').select('*').order('nombre');
         if (materiasRes.error) throw materiasRes.error;
-        if (preguntasRes.error) throw preguntasRes.error;
-
         setMaterias(materiasRes.data || []);
-        setPreguntas(preguntasRes.data || []);
+
+        if (canManageQuestions) {
+          // Admin/Profesor: cargar preguntas completas (con respuestas)
+          const preguntasRes = await supabase.from('preguntas').select('*').order('created_at', { ascending: false });
+          if (preguntasRes.error) throw preguntasRes.error;
+          setPreguntas(preguntasRes.data || []);
+        } else {
+          // Estudiantes: cargar desde vista segura (sin respuestas)
+          const preguntasRes = await supabase.from('preguntas_simulacro').select('*');
+          if (preguntasRes.error) throw preguntasRes.error;
+          setPreguntasEstudiante((preguntasRes.data || []) as PreguntaSimulacro[]);
+        }
       } catch (error: any) {
         console.error('Error loading data:', error);
         toast({
@@ -187,7 +222,7 @@ const Simulacros: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [canManageQuestions]);
 
   // Cronómetro general por materia
   useEffect(() => {
@@ -211,7 +246,32 @@ const Simulacros: React.FC = () => {
   };
 
   const getPreguntasActivasByMateria = (materiaId: string) => {
-    return preguntas.filter(p => p.materia_id === materiaId && p.activa);
+    if (canManageQuestions) {
+      return preguntas.filter(p => p.materia_id === materiaId && p.activa);
+    }
+    // Estudiantes: usar vista segura (sin respuestas)
+    return preguntasEstudiante.filter(p => p.materia_id === materiaId && p.activa);
+  };
+
+  // Obtener preguntas para simulacro (vista segura para estudiantes)
+  const getPreguntasSimulacroByMateria = (materiaId: string): PreguntaSimulacro[] => {
+    if (canManageQuestions) {
+      // Para admin/profesor, convertir a formato de simulacro (sin respuestas para el simulacro activo)
+      return preguntas
+        .filter(p => p.materia_id === materiaId && p.activa)
+        .map(p => ({
+          id: p.id,
+          materia_id: p.materia_id,
+          pregunta: p.pregunta,
+          opcion_a: p.opcion_a,
+          opcion_b: p.opcion_b,
+          opcion_c: p.opcion_c,
+          opcion_d: p.opcion_d,
+          imagen_url: p.imagen_url,
+          activa: p.activa,
+        }));
+    }
+    return preguntasEstudiante.filter(p => p.materia_id === materiaId && p.activa);
   };
 
   // Validar formulario
@@ -401,8 +461,8 @@ const Simulacros: React.FC = () => {
 
   // Iniciar simulacro con tiempo GENERAL por materia
   const iniciarSimulacro = (materia: Materia) => {
-    const preguntasActivas = getPreguntasActivasByMateria(materia.id);
-    if (preguntasActivas.length === 0) {
+    const preguntasParaSimulacro = getPreguntasSimulacroByMateria(materia.id);
+    if (preguntasParaSimulacro.length === 0) {
       toast({
         title: 'Sin preguntas',
         description: 'No hay preguntas activas para esta materia.',
@@ -412,12 +472,13 @@ const Simulacros: React.FC = () => {
     }
 
     // Mezclar preguntas
-    const preguntasMezcladas = [...preguntasActivas].sort(() => Math.random() - 0.5);
+    const preguntasMezcladas = [...preguntasParaSimulacro].sort(() => Math.random() - 0.5);
     
     setPreguntasSimulacro(preguntasMezcladas);
     setSimulacroMateria(materia);
     setPreguntaActual(0);
     setRespuestas({});
+    setResultadoVerificacion(null);
     // Tiempo GENERAL por materia (configurado en la materia)
     const tiempo = materia.tiempo_simulacro || 1800;
     setTiempoRestante(tiempo);
@@ -432,29 +493,32 @@ const Simulacros: React.FC = () => {
     setRespuestas(prev => ({ ...prev, [preguntaId]: opcion }));
   };
 
-  // Finalizar simulacro - Calificación 0-100 por materia
+  // Finalizar simulacro - Verificar respuestas con edge function
   const finalizarSimulacro = useCallback(async () => {
     setSimulacroTerminado(true);
     
-    let correctas = 0;
-    preguntasSimulacro.forEach(p => {
-      if (respuestas[p.id] === p.respuesta_correcta) {
-        correctas++;
-      }
-    });
-
-    const total = preguntasSimulacro.length;
     const tiempoUsado = tiempoInicial - tiempoRestante;
+    const preguntaIds = preguntasSimulacro.map(p => p.id);
     
-    // Calificación de 0 a 100 por materia
-    const puntaje = total > 0 ? Math.round((correctas / total) * 100) : 0;
-    const porcentaje = puntaje;
+    try {
+      // Llamar a edge function para verificar respuestas
+      const { data, error } = await supabase.functions.invoke('verify-simulacro', {
+        body: {
+          pregunta_ids: preguntaIds,
+          respuestas: respuestas,
+        },
+      });
 
-    setResultadoFinal({ correctas, total, puntaje, porcentaje, tiempo: tiempoUsado });
+      if (error) throw error;
 
-    // Guardar resultado en base de datos
-    if (user && simulacroMateria) {
-      try {
+      const resultado = data as VerifySimulacroResult;
+      setResultadoVerificacion(resultado);
+      
+      const { correctas, total, puntaje } = resultado;
+      setResultadoFinal({ correctas, total, puntaje, porcentaje: puntaje, tiempo: tiempoUsado });
+
+      // Guardar resultado en base de datos
+      if (user && simulacroMateria) {
         await supabase.from('resultados_simulacro').insert({
           user_id: user.id,
           materia_id: simulacroMateria.id,
@@ -464,11 +528,24 @@ const Simulacros: React.FC = () => {
           tiempo_segundos: tiempoUsado,
           detalles: { respuestas },
         });
-      } catch (error) {
-        console.error('Error saving result:', error);
       }
+    } catch (error) {
+      console.error('Error verifying simulacro:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo verificar el simulacro.',
+        variant: 'destructive',
+      });
+      // Fallback: mostrar resultado sin detalles
+      setResultadoFinal({
+        correctas: 0,
+        total: preguntasSimulacro.length,
+        puntaje: 0,
+        porcentaje: 0,
+        tiempo: tiempoUsado,
+      });
     }
-  }, [preguntasSimulacro, respuestas, tiempoRestante, tiempoInicial, user, simulacroMateria]);
+  }, [preguntasSimulacro, respuestas, tiempoRestante, tiempoInicial, user, simulacroMateria, toast]);
 
   const cerrarSimulacro = () => {
     setSimulacroActivo(false);
@@ -476,6 +553,7 @@ const Simulacros: React.FC = () => {
     setPreguntasSimulacro([]);
     setSimulacroMateria(null);
     setResultadoFinal(null);
+    setResultadoVerificacion(null);
   };
 
   const selectedMateria = materias.find(m => m.id === selectedMateriaForQuestions);
@@ -551,7 +629,8 @@ const Simulacros: React.FC = () => {
                 <div className="space-y-3 text-left max-h-60 overflow-y-auto">
                   <h4 className="font-semibold">Revisión de respuestas:</h4>
                   {preguntasSimulacro.map((p, index) => {
-                    const esCorrecta = respuestas[p.id] === p.respuesta_correcta;
+                    const detalle = resultadoVerificacion?.detalles[p.id];
+                    const esCorrecta = detalle?.es_correcta ?? false;
                     return (
                       <div key={p.id} className={`p-3 rounded-lg border ${esCorrecta ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5'}`}>
                         <div className="flex items-start gap-2">
@@ -559,8 +638,11 @@ const Simulacros: React.FC = () => {
                           <div className="flex-1">
                             <p className="text-sm font-medium">Pregunta {index + 1}</p>
                             <p className="text-xs text-muted-foreground line-clamp-2">{p.pregunta}</p>
-                            {!esCorrecta && (
-                              <p className="text-xs text-success mt-1">Respuesta correcta: {p.respuesta_correcta}</p>
+                            {!esCorrecta && detalle && (
+                              <p className="text-xs text-success mt-1">Respuesta correcta: {detalle.respuesta_correcta}</p>
+                            )}
+                            {detalle?.explicacion && (
+                              <p className="text-xs text-muted-foreground mt-1 italic">{detalle.explicacion}</p>
                             )}
                           </div>
                         </div>
