@@ -11,10 +11,14 @@ import {
   User,
   Calendar,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 import {
   LineChart,
   Line,
@@ -57,11 +61,14 @@ interface Materia {
 
 const Progreso: React.FC = () => {
   const { user, isAdmin, isProfesor } = useAuth();
+  const { toast } = useToast();
   const canViewAll = isAdmin || isProfesor;
 
   const [resultados, setResultados] = useState<Resultado[]>([]);
   const [materias, setMaterias] = useState<Materia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [resultToDelete, setResultToDelete] = useState<Resultado | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -166,6 +173,42 @@ const Progreso: React.FC = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
+
+  // Confirmar eliminación de resultado
+  const handleConfirmDeleteResult = (result: Resultado) => {
+    setResultToDelete(result);
+    setDeleteConfirmOpen(true);
+  };
+
+  // Eliminar resultado
+  const handleDeleteResult = async () => {
+    if (!resultToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('resultados_simulacro')
+        .delete()
+        .eq('id', resultToDelete.id);
+
+      if (error) throw error;
+
+      setResultados(prev => prev.filter(r => r.id !== resultToDelete.id));
+      toast({
+        title: 'Resultado eliminado',
+        description: 'El resultado del simulacro ha sido eliminado.',
+      });
+    } catch (error: any) {
+      console.error('Error deleting result:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar el resultado.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setResultToDelete(null);
+    }
   };
 
   if (loading) {
@@ -282,6 +325,7 @@ const Progreso: React.FC = () => {
                       <th className="text-left py-3 px-2 font-medium hidden sm:table-cell">%</th>
                       <th className="text-left py-3 px-2 font-medium hidden md:table-cell">Tiempo</th>
                       <th className="text-left py-3 px-2 font-medium hidden lg:table-cell">Fecha</th>
+                      {isAdmin && <th className="text-right py-3 px-2 font-medium">Acciones</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -316,6 +360,19 @@ const Progreso: React.FC = () => {
                             year: 'numeric'
                           })}
                         </td>
+                        {isAdmin && (
+                          <td className="py-3 px-2 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleConfirmDeleteResult(r)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              title="Eliminar resultado"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -530,6 +587,24 @@ const Progreso: React.FC = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Confirmar eliminación de resultado */}
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar resultado?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción eliminará permanentemente el resultado del simulacro de <strong>{resultToDelete?.profiles?.nombre}</strong> en <strong>{resultToDelete?.materias?.nombre || 'General'}</strong>. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteResult} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );

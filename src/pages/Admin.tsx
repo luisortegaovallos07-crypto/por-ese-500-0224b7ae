@@ -15,7 +15,8 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
@@ -65,6 +67,8 @@ const Admin: React.FC = () => {
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof UserFormData, string>>>({});
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserWithRole | null>(null);
 
   const canManageUsers = isAdmin;
 
@@ -350,6 +354,57 @@ const Admin: React.FC = () => {
     }
   };
 
+  // Confirmar eliminación de usuario
+  const handleConfirmDeleteUser = (user: UserWithRole) => {
+    if (user.id === currentUser?.id) {
+      toast({
+        title: 'Operación no permitida',
+        description: 'No puedes eliminar tu propia cuenta.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setUserToDelete(user);
+    setDeleteConfirmOpen(true);
+  };
+
+  // Eliminar usuario
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      // Eliminar rol
+      await supabase.from('user_roles').delete().eq('user_id', userToDelete.id);
+      
+      // Eliminar resultados de simulacro
+      await supabase.from('resultados_simulacro').delete().eq('user_id', userToDelete.id);
+      
+      // Eliminar mensajes
+      await supabase.from('mensajes').delete().or(`remitente_id.eq.${userToDelete.id},destinatario_id.eq.${userToDelete.id}`);
+      
+      // Eliminar perfil
+      const { error } = await supabase.from('profiles').delete().eq('id', userToDelete.id);
+      
+      if (error) throw error;
+
+      setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+      toast({
+        title: 'Usuario eliminado',
+        description: `${userToDelete.nombre} ha sido eliminado del sistema.`,
+      });
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar el usuario.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setUserToDelete(null);
+    }
+  };
+
   // Obtener badge de rol
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
@@ -526,6 +581,16 @@ const Admin: React.FC = () => {
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleConfirmDeleteUser(user)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              title="Eliminar usuario"
+                              disabled={user.id === currentUser?.id}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                             <Switch
                               checked={user.activo}
                               onCheckedChange={() => handleToggleUserStatus(user.id)}
@@ -677,6 +742,24 @@ const Admin: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Confirmar eliminación de usuario */}
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción eliminará permanentemente a <strong>{userToDelete?.nombre}</strong> y todos sus datos asociados (resultados de simulacros, mensajes, etc.). Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
