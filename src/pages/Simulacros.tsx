@@ -7,7 +7,7 @@ import {
   Calculator,
   Languages,
   BookOpen,
-  Microscope,
+  Atom,
   Play,
   Clock,
   Target,
@@ -18,13 +18,12 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Save,
-  X,
   Settings,
   ListChecks,
   Loader2,
   Timer,
   RotateCcw,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,7 +50,7 @@ const iconMap: { [key: string]: React.ElementType } = {
   Calculator,
   Languages,
   BookOpen,
-  Microscope,
+  Atom,
 };
 
 interface Materia {
@@ -60,6 +59,7 @@ interface Materia {
   descripcion: string | null;
   icono: string | null;
   color: string | null;
+  tiempo_simulacro: number;
 }
 
 interface Pregunta {
@@ -72,6 +72,7 @@ interface Pregunta {
   opcion_d: string;
   respuesta_correcta: string;
   explicacion: string | null;
+  imagen_url: string | null;
   activa: boolean | null;
 }
 
@@ -84,6 +85,7 @@ interface PreguntaFormData {
   opcion_d: string;
   respuesta_correcta: string;
   explicacion: string;
+  imagen_url: string;
   activa: boolean;
 }
 
@@ -96,6 +98,7 @@ const initialFormData: PreguntaFormData = {
   opcion_d: '',
   respuesta_correcta: 'A',
   explicacion: '',
+  imagen_url: '',
   activa: true,
 };
 
@@ -106,7 +109,7 @@ const Cronometro: React.FC<{ segundos: number }> = ({ segundos }) => {
   return (
     <div className="flex items-center gap-2 text-lg font-mono bg-muted px-4 py-2 rounded-lg">
       <Timer className="h-5 w-5 text-primary" />
-      <span className={segundos < 60 ? 'text-destructive' : ''}>
+      <span className={segundos < 60 ? 'text-destructive font-bold' : ''}>
         {String(minutos).padStart(2, '0')}:{String(segs).padStart(2, '0')}
       </span>
     </div>
@@ -134,6 +137,9 @@ const Simulacros: React.FC = () => {
   const [preguntaToDelete, setPreguntaToDelete] = useState<string | null>(null);
   const [selectedMateriaForQuestions, setSelectedMateriaForQuestions] = useState<string | null>(null);
   const [showQuestionsDialog, setShowQuestionsDialog] = useState(false);
+  const [showTimeDialog, setShowTimeDialog] = useState(false);
+  const [editingMateriaTime, setEditingMateriaTime] = useState<Materia | null>(null);
+  const [newTimeMinutes, setNewTimeMinutes] = useState(30);
 
   // Estados del simulacro activo
   const [simulacroActivo, setSimulacroActivo] = useState(false);
@@ -142,11 +148,13 @@ const Simulacros: React.FC = () => {
   const [preguntaActual, setPreguntaActual] = useState(0);
   const [respuestas, setRespuestas] = useState<Record<string, string>>({});
   const [tiempoRestante, setTiempoRestante] = useState(0);
+  const [tiempoInicial, setTiempoInicial] = useState(0);
   const [simulacroTerminado, setSimulacroTerminado] = useState(false);
   const [resultadoFinal, setResultadoFinal] = useState<{
     correctas: number;
     total: number;
     puntaje: number;
+    porcentaje: number;
     tiempo: number;
   } | null>(null);
 
@@ -180,7 +188,7 @@ const Simulacros: React.FC = () => {
     fetchData();
   }, []);
 
-  // Cronómetro
+  // Cronómetro general por materia
   useEffect(() => {
     if (!simulacroActivo || simulacroTerminado) return;
 
@@ -240,6 +248,7 @@ const Simulacros: React.FC = () => {
       opcion_d: pregunta.opcion_d,
       respuesta_correcta: pregunta.respuesta_correcta,
       explicacion: pregunta.explicacion || '',
+      imagen_url: pregunta.imagen_url || '',
       activa: pregunta.activa ?? true,
     });
     setFormErrors({});
@@ -278,6 +287,7 @@ const Simulacros: React.FC = () => {
         opcion_d: formData.opcion_d.trim(),
         respuesta_correcta: formData.respuesta_correcta,
         explicacion: formData.explicacion.trim() || null,
+        imagen_url: formData.imagen_url.trim() || null,
         activa: formData.activa,
         created_by: user.id,
       }).select().single();
@@ -310,6 +320,7 @@ const Simulacros: React.FC = () => {
         opcion_d: formData.opcion_d.trim(),
         respuesta_correcta: formData.respuesta_correcta,
         explicacion: formData.explicacion.trim() || null,
+        imagen_url: formData.imagen_url.trim() || null,
         activa: formData.activa,
       }).eq('id', editingPreguntaId).select().single();
 
@@ -354,7 +365,40 @@ const Simulacros: React.FC = () => {
     setShowQuestionsDialog(true);
   };
 
-  // Iniciar simulacro
+  // Configurar tiempo por materia (solo admin)
+  const handleOpenTimeDialog = (materia: Materia) => {
+    setEditingMateriaTime(materia);
+    setNewTimeMinutes(Math.floor(materia.tiempo_simulacro / 60));
+    setShowTimeDialog(true);
+  };
+
+  const handleSaveTime = async () => {
+    if (!editingMateriaTime) return;
+
+    setSaving(true);
+    try {
+      const tiempoSegundos = newTimeMinutes * 60;
+      const { error } = await supabase
+        .from('materias')
+        .update({ tiempo_simulacro: tiempoSegundos })
+        .eq('id', editingMateriaTime.id);
+
+      if (error) throw error;
+
+      setMaterias(prev => prev.map(m => 
+        m.id === editingMateriaTime.id ? { ...m, tiempo_simulacro: tiempoSegundos } : m
+      ));
+      toast({ title: 'Tiempo actualizado', description: `Tiempo configurado: ${newTimeMinutes} minutos.` });
+      setShowTimeDialog(false);
+    } catch (error: any) {
+      console.error('Error saving time:', error);
+      toast({ title: 'Error', description: 'No se pudo guardar el tiempo.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Iniciar simulacro con tiempo GENERAL por materia
   const iniciarSimulacro = (materia: Materia) => {
     const preguntasActivas = getPreguntasActivasByMateria(materia.id);
     if (preguntasActivas.length === 0) {
@@ -366,14 +410,17 @@ const Simulacros: React.FC = () => {
       return;
     }
 
-    // Mezclar y tomar máximo 20 preguntas
-    const preguntasMezcladas = [...preguntasActivas].sort(() => Math.random() - 0.5).slice(0, 20);
+    // Mezclar preguntas
+    const preguntasMezcladas = [...preguntasActivas].sort(() => Math.random() - 0.5);
     
     setPreguntasSimulacro(preguntasMezcladas);
     setSimulacroMateria(materia);
     setPreguntaActual(0);
     setRespuestas({});
-    setTiempoRestante(preguntasMezcladas.length * 60); // 1 minuto por pregunta
+    // Tiempo GENERAL por materia (configurado en la materia)
+    const tiempo = materia.tiempo_simulacro || 1800;
+    setTiempoRestante(tiempo);
+    setTiempoInicial(tiempo);
     setSimulacroActivo(true);
     setSimulacroTerminado(false);
     setResultadoFinal(null);
@@ -384,7 +431,7 @@ const Simulacros: React.FC = () => {
     setRespuestas(prev => ({ ...prev, [preguntaId]: opcion }));
   };
 
-  // Finalizar simulacro
+  // Finalizar simulacro - Calificación 0-100 por materia
   const finalizarSimulacro = useCallback(async () => {
     setSimulacroTerminado(true);
     
@@ -396,29 +443,31 @@ const Simulacros: React.FC = () => {
     });
 
     const total = preguntasSimulacro.length;
-    const tiempoUsado = (preguntasSimulacro.length * 60) - tiempoRestante;
+    const tiempoUsado = tiempoInicial - tiempoRestante;
     
-    // Calificación de 0 a 500
-    const puntaje = Math.round((correctas / total) * 500);
+    // Calificación de 0 a 100 por materia
+    const puntaje = total > 0 ? Math.round((correctas / total) * 100) : 0;
+    const porcentaje = puntaje;
 
-    setResultadoFinal({ correctas, total, puntaje, tiempo: tiempoUsado });
+    setResultadoFinal({ correctas, total, puntaje, porcentaje, tiempo: tiempoUsado });
 
     // Guardar resultado en base de datos
-    if (user) {
+    if (user && simulacroMateria) {
       try {
         await supabase.from('resultados_simulacro').insert({
           user_id: user.id,
+          materia_id: simulacroMateria.id,
           puntaje,
           total_preguntas: total,
           respuestas_correctas: correctas,
           tiempo_segundos: tiempoUsado,
-          detalles: { materia_id: simulacroMateria?.id, respuestas },
+          detalles: { respuestas },
         });
       } catch (error) {
         console.error('Error saving result:', error);
       }
     }
-  }, [preguntasSimulacro, respuestas, tiempoRestante, user, simulacroMateria]);
+  }, [preguntasSimulacro, respuestas, tiempoRestante, tiempoInicial, user, simulacroMateria]);
 
   const cerrarSimulacro = () => {
     setSimulacroActivo(false);
@@ -468,7 +517,7 @@ const Simulacros: React.FC = () => {
               <CardContent className="space-y-6">
                 <div className="text-6xl font-bold text-primary">
                   {resultadoFinal.puntaje}
-                  <span className="text-2xl text-muted-foreground">/500</span>
+                  <span className="text-2xl text-muted-foreground">/100</span>
                 </div>
                 
                 <div className="grid grid-cols-3 gap-4">
@@ -489,19 +538,26 @@ const Simulacros: React.FC = () => {
                   </div>
                 </div>
 
-                <Progress value={(resultadoFinal.correctas / resultadoFinal.total) * 100} className="h-3" />
+                <div className="text-lg">
+                  <span className="text-muted-foreground">Porcentaje: </span>
+                  <span className={`font-bold ${resultadoFinal.porcentaje >= 60 ? 'text-success' : 'text-destructive'}`}>
+                    {resultadoFinal.porcentaje}%
+                  </span>
+                </div>
 
-                <div className="space-y-3">
+                <Progress value={resultadoFinal.porcentaje} className="h-3" />
+
+                <div className="space-y-3 text-left max-h-60 overflow-y-auto">
                   <h4 className="font-semibold">Revisión de respuestas:</h4>
                   {preguntasSimulacro.map((p, index) => {
                     const esCorrecta = respuestas[p.id] === p.respuesta_correcta;
                     return (
-                      <div key={p.id} className={`p-3 rounded-lg border text-left ${esCorrecta ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5'}`}>
+                      <div key={p.id} className={`p-3 rounded-lg border ${esCorrecta ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5'}`}>
                         <div className="flex items-start gap-2">
                           {esCorrecta ? <CheckCircle className="h-4 w-4 text-success mt-0.5" /> : <XCircle className="h-4 w-4 text-destructive mt-0.5" />}
                           <div className="flex-1">
                             <p className="text-sm font-medium">Pregunta {index + 1}</p>
-                            <p className="text-xs text-muted-foreground">{p.pregunta.substring(0, 80)}...</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{p.pregunta}</p>
                             {!esCorrecta && (
                               <p className="text-xs text-success mt-1">Respuesta correcta: {p.respuesta_correcta}</p>
                             )}
@@ -539,6 +595,15 @@ const Simulacros: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg leading-relaxed">{preguntaActualData?.pregunta}</CardTitle>
+              {preguntaActualData?.imagen_url && (
+                <div className="mt-4">
+                  <img 
+                    src={preguntaActualData.imagen_url} 
+                    alt="Imagen de la pregunta" 
+                    className="max-w-full max-h-64 object-contain rounded-lg border"
+                  />
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-3">
               {opciones.map(op => (
@@ -569,7 +634,7 @@ const Simulacros: React.FC = () => {
               Anterior
             </Button>
 
-            <div className="flex gap-2">
+            <div className="flex gap-1 flex-wrap justify-center max-w-xs">
               {preguntasSimulacro.map((_, i) => (
                 <button
                   key={i}
@@ -610,7 +675,7 @@ const Simulacros: React.FC = () => {
           <div>
             <h1 className="section-title mb-0">Simulacros</h1>
             <p className="text-muted-foreground max-w-2xl mt-2">
-              Practica con simulacros de evaluación. Calificación de 0 a 500 puntos.
+              Practica con simulacros. Cada materia se califica de 0 a 100.
             </p>
           </div>
           {canManageQuestions && (
@@ -651,8 +716,8 @@ const Simulacros: React.FC = () => {
                 <Award className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-2xl font-bold">500</p>
-                <p className="text-xs text-muted-foreground">Puntaje Máximo</p>
+                <p className="text-2xl font-bold">100</p>
+                <p className="text-xs text-muted-foreground">Puntaje por Materia</p>
               </div>
             </CardContent>
           </Card>
@@ -662,8 +727,8 @@ const Simulacros: React.FC = () => {
                 <Timer className="h-5 w-5 text-accent-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">1 min</p>
-                <p className="text-xs text-muted-foreground">Por Pregunta</p>
+                <p className="text-2xl font-bold">500</p>
+                <p className="text-xs text-muted-foreground">Total Máximo</p>
               </div>
             </CardContent>
           </Card>
@@ -671,16 +736,20 @@ const Simulacros: React.FC = () => {
 
         {/* Subject Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {materias.map((materia, index) => {
+          {materias.map((materia) => {
             const Icon = iconMap[materia.icono || 'BookOpen'] || BookOpen;
             const materiaPreguntas = getPreguntasByMateria(materia.id);
             const preguntasActivas = materiaPreguntas.filter(p => p.activa).length;
+            const tiempoMinutos = Math.floor(materia.tiempo_simulacro / 60);
 
             return (
-              <Card key={materia.id} className={`card-hover animate-fade-in`}>
+              <Card key={materia.id} className="card-hover">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div className={`h-14 w-14 rounded-xl ${materia.color || 'bg-primary'} flex items-center justify-center shadow-md`}>
+                    <div 
+                      className="h-14 w-14 rounded-xl flex items-center justify-center shadow-md"
+                      style={{ backgroundColor: materia.color || '#3B82F6' }}
+                    >
                       <Icon className="h-7 w-7 text-white" />
                     </div>
                     <div className="text-right">
@@ -692,6 +761,10 @@ const Simulacros: React.FC = () => {
                   <CardDescription className="line-clamp-2">
                     {materia.descripcion}
                   </CardDescription>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
+                    <Timer className="h-4 w-4" />
+                    <span>{tiempoMinutos} minutos</span>
+                  </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
@@ -709,16 +782,26 @@ const Simulacros: React.FC = () => {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="flex-1 gap-2"
+                        className="flex-1 gap-1"
                         onClick={() => handleViewQuestions(materia.id)}
                       >
                         <Settings className="h-4 w-4" />
-                        Gestionar ({materiaPreguntas.length})
+                        Gestionar
                       </Button>
+                      {isAdmin && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="gap-1"
+                          onClick={() => handleOpenTimeDialog(materia)}
+                        >
+                          <Timer className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="gap-2"
+                        className="gap-1"
                         onClick={() => handleOpenCreateDialog(materia.id)}
                       >
                         <Plus className="h-4 w-4" />
@@ -744,135 +827,91 @@ const Simulacros: React.FC = () => {
               </li>
               <li className="flex items-start gap-2">
                 <ArrowRight className="h-4 w-4 mt-1 text-primary" />
-                Cada simulacro tiene un cronómetro de 1 minuto por pregunta.
+                El tiempo es GENERAL por materia (configurable por el administrador).
               </li>
               <li className="flex items-start gap-2">
                 <ArrowRight className="h-4 w-4 mt-1 text-primary" />
-                La calificación es automática de 0 a 500 puntos.
+                Cada materia se califica de 0 a 100 puntos.
               </li>
               <li className="flex items-start gap-2">
                 <ArrowRight className="h-4 w-4 mt-1 text-primary" />
-                Al finalizar verás el resultado y la revisión de respuestas.
+                El puntaje total máximo es 500 (5 materias × 100 puntos).
               </li>
             </ul>
           </CardContent>
         </Card>
 
-        {/* Diálogo para ver/gestionar preguntas */}
+        {/* Diálogo de preguntas por materia */}
         <Dialog open={showQuestionsDialog} onOpenChange={setShowQuestionsDialog}>
           <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {selectedMateria && (
-                  <>
-                    <div className={`h-8 w-8 rounded-lg ${selectedMateria.color || 'bg-primary'} flex items-center justify-center`}>
-                      {(() => {
-                        const Icon = iconMap[selectedMateria.icono || 'BookOpen'] || BookOpen;
-                        return <Icon className="h-4 w-4 text-white" />;
-                      })()}
-                    </div>
-                    {selectedMateria.nombre} - Banco de Preguntas
-                  </>
-                )}
-              </DialogTitle>
+              <DialogTitle>Preguntas de {selectedMateria?.nombre}</DialogTitle>
+              <DialogDescription>
+                {selectedMateriaPreguntas.length} preguntas en total
+              </DialogDescription>
             </DialogHeader>
-
-            <div className="space-y-4 mt-4">
+            <div className="space-y-3">
               {selectedMateriaPreguntas.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <ListChecks className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No hay preguntas en esta materia</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-4 gap-2"
-                    onClick={() => {
-                      setShowQuestionsDialog(false);
-                      handleOpenCreateDialog(selectedMateriaForQuestions || undefined);
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Añadir primera pregunta
-                  </Button>
-                </div>
+                <p className="text-center text-muted-foreground py-8">No hay preguntas registradas.</p>
               ) : (
                 selectedMateriaPreguntas.map((pregunta, index) => (
-                  <div key={pregunta.id} className="p-4 rounded-lg border border-border">
-                    <div className="flex items-start justify-between gap-4 mb-3">
+                  <div key={pregunta.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant={pregunta.activa ? 'default' : 'secondary'}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant={pregunta.activa ? "default" : "secondary"}>
                             {pregunta.activa ? 'Activa' : 'Inactiva'}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">Pregunta {index + 1}</span>
+                          <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                          {pregunta.imagen_url && (
+                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </div>
-                        <p className="font-medium">{pregunta.pregunta}</p>
+                        <p className="font-medium text-sm line-clamp-2">{pregunta.pregunta}</p>
+                        <p className="text-xs text-success mt-1">Respuesta: {pregunta.respuesta_correcta}</p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setShowQuestionsDialog(false);
-                            handleOpenEditDialog(pregunta);
-                          }}
-                        >
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setShowQuestionsDialog(false); handleOpenEditDialog(pregunta); }}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          onClick={() => handleConfirmDelete(pregunta.id)}
-                        >
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" onClick={() => handleConfirmDelete(pregunta.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {['A', 'B', 'C', 'D'].map(opcion => {
-                        const valor = pregunta[`opcion_${opcion.toLowerCase()}` as keyof Pregunta];
-                        const esCorrecta = opcion === pregunta.respuesta_correcta;
-                        return (
-                          <div 
-                            key={opcion}
-                            className={`p-2 rounded text-sm ${
-                              esCorrecta 
-                                ? 'bg-success/20 text-success border border-success/30' 
-                                : 'bg-muted'
-                            }`}
-                          >
-                            <span className="font-medium mr-2">{opcion}.</span>
-                            {String(valor)}
-                            {esCorrecta && <CheckCircle className="h-3 w-3 inline ml-2" />}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {pregunta.explicacion && (
-                      <p className="text-sm text-muted-foreground mt-2 italic">
-                        💡 {pregunta.explicacion}
-                      </p>
-                    )}
                   </div>
                 ))
               )}
             </div>
+          </DialogContent>
+        </Dialog>
 
-            <DialogFooter className="mt-4">
-              <Button variant="outline" onClick={() => setShowQuestionsDialog(false)}>
-                Cerrar
-              </Button>
-              <Button 
-                onClick={() => {
-                  setShowQuestionsDialog(false);
-                  handleOpenCreateDialog(selectedMateriaForQuestions || undefined);
-                }}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Añadir Pregunta
+        {/* Diálogo para configurar tiempo */}
+        <Dialog open={showTimeDialog} onOpenChange={setShowTimeDialog}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Configurar Tiempo</DialogTitle>
+              <DialogDescription>
+                Tiempo general para {editingMateriaTime?.nombre}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Tiempo (minutos)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={newTimeMinutes}
+                  onChange={e => setNewTimeMinutes(parseInt(e.target.value) || 30)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowTimeDialog(false)}>Cancelar</Button>
+              <Button onClick={handleSaveTime} disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Guardar
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -882,20 +921,17 @@ const Simulacros: React.FC = () => {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {isEditing ? <><Pencil className="h-5 w-5" /> Editar Pregunta</> : <><Plus className="h-5 w-5" /> Nueva Pregunta</>}
-              </DialogTitle>
+              <DialogTitle>{isEditing ? 'Editar Pregunta' : 'Nueva Pregunta'}</DialogTitle>
               <DialogDescription>
-                {isEditing ? 'Modifica los datos de la pregunta.' : 'Crea una nueva pregunta de simulacro.'}
+                {isEditing ? 'Modifica los datos de la pregunta.' : 'Completa los datos de la pregunta.'}
               </DialogDescription>
             </DialogHeader>
-
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Materia *</Label>
-                <Select value={formData.materia_id} onValueChange={(v) => handleInputChange('materia_id', v)}>
+                <Select value={formData.materia_id} onValueChange={val => handleInputChange('materia_id', val)}>
                   <SelectTrigger className={formErrors.materia_id ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Selecciona una materia" />
+                    <SelectValue placeholder="Selecciona materia" />
                   </SelectTrigger>
                   <SelectContent>
                     {materias.map(m => (
@@ -903,81 +939,86 @@ const Simulacros: React.FC = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {formErrors.materia_id && <p className="text-xs text-destructive">{formErrors.materia_id}</p>}
               </div>
 
               <div className="grid gap-2">
                 <Label>Pregunta *</Label>
                 <Textarea
-                  placeholder="Escribe la pregunta"
                   value={formData.pregunta}
                   onChange={e => handleInputChange('pregunta', e.target.value)}
-                  className={formErrors.pregunta ? 'border-destructive' : ''}
                   rows={3}
+                  className={formErrors.pregunta ? 'border-destructive' : ''}
                 />
-                {formErrors.pregunta && <p className="text-xs text-destructive">{formErrors.pregunta}</p>}
               </div>
 
-              <div className="grid gap-3">
-                <Label>Opciones de respuesta *</Label>
-                {['A', 'B', 'C', 'D'].map(letra => {
-                  const fieldName = `opcion_${letra.toLowerCase()}` as keyof PreguntaFormData;
-                  return (
-                    <div key={letra} className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">{letra}</span>
-                      <Input
-                        placeholder={`Opción ${letra}`}
-                        value={formData[fieldName] as string}
-                        onChange={e => handleInputChange(fieldName, e.target.value)}
-                        className={`flex-1 ${formErrors[fieldName] ? 'border-destructive' : ''}`}
-                      />
-                      <input
-                        type="radio"
-                        name="respuestaCorrecta"
-                        checked={formData.respuesta_correcta === letra}
-                        onChange={() => handleInputChange('respuesta_correcta', letra)}
-                        className="h-4 w-4"
-                        title="Marcar como correcta"
-                      />
-                    </div>
-                  );
-                })}
-                <p className="text-xs text-muted-foreground">Selecciona el círculo junto a la opción correcta.</p>
+              <div className="grid gap-2">
+                <Label>URL de imagen (opcional)</Label>
+                <Input
+                  value={formData.imagen_url}
+                  onChange={e => handleInputChange('imagen_url', e.target.value)}
+                  placeholder="https://ejemplo.com/imagen.jpg"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Opción A *</Label>
+                  <Input value={formData.opcion_a} onChange={e => handleInputChange('opcion_a', e.target.value)} className={formErrors.opcion_a ? 'border-destructive' : ''} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Opción B *</Label>
+                  <Input value={formData.opcion_b} onChange={e => handleInputChange('opcion_b', e.target.value)} className={formErrors.opcion_b ? 'border-destructive' : ''} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Opción C *</Label>
+                  <Input value={formData.opcion_c} onChange={e => handleInputChange('opcion_c', e.target.value)} className={formErrors.opcion_c ? 'border-destructive' : ''} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Opción D *</Label>
+                  <Input value={formData.opcion_d} onChange={e => handleInputChange('opcion_d', e.target.value)} className={formErrors.opcion_d ? 'border-destructive' : ''} />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Respuesta Correcta *</Label>
+                <Select value={formData.respuesta_correcta} onValueChange={val => handleInputChange('respuesta_correcta', val)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">A</SelectItem>
+                    <SelectItem value="B">B</SelectItem>
+                    <SelectItem value="C">C</SelectItem>
+                    <SelectItem value="D">D</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid gap-2">
                 <Label>Explicación (opcional)</Label>
                 <Textarea
-                  placeholder="Explicación de la respuesta"
                   value={formData.explicacion}
                   onChange={e => handleInputChange('explicacion', e.target.value)}
                   rows={2}
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div>
-                  <Label className="text-sm font-medium">Pregunta Activa</Label>
-                  <p className="text-xs text-muted-foreground">Las inactivas no aparecen en simulacros.</p>
-                </div>
-                <Switch checked={formData.activa} onCheckedChange={v => handleInputChange('activa', v)} />
+              <div className="flex items-center justify-between">
+                <Label>Pregunta activa</Label>
+                <Switch checked={formData.activa} onCheckedChange={val => handleInputChange('activa', val)} />
               </div>
             </div>
-
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={handleCloseDialog} disabled={saving}>
-                <X className="h-4 w-4 mr-2" />
-                Cancelar
-              </Button>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseDialog}>Cancelar</Button>
               <Button onClick={isEditing ? handleUpdatePregunta : handleCreatePregunta} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 {isEditing ? 'Guardar' : 'Crear'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Confirmación de eliminación */}
+        {/* Confirmar eliminación */}
         <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -986,9 +1027,7 @@ const Simulacros: React.FC = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeletePregunta} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Eliminar
-              </AlertDialogAction>
+              <AlertDialogAction onClick={handleDeletePregunta} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
