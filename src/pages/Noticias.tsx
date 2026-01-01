@@ -3,6 +3,7 @@ import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ImageUpload } from '@/components/ImageUpload';
 import { 
   Calendar, 
   User, 
@@ -540,29 +541,27 @@ const NoticiaForm: React.FC<NoticiaFormProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="autor">Autor *</Label>
-          <Input
-            id="autor"
-            placeholder="Nombre del autor"
-            value={formData.autor}
-            onChange={e => onInputChange('autor', e.target.value)}
-            className={formErrors.autor ? 'border-destructive' : ''}
-          />
-          {formErrors.autor && (
-            <p className="text-xs text-destructive">{formErrors.autor}</p>
-          )}
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="imagen_url">URL de Imagen</Label>
-          <Input
-            id="imagen_url"
-            placeholder="https://..."
-            value={formData.imagen_url}
-            onChange={e => onInputChange('imagen_url', e.target.value)}
-          />
-        </div>
+      <div className="grid gap-2">
+        <Label htmlFor="autor">Autor *</Label>
+        <Input
+          id="autor"
+          placeholder="Nombre del autor"
+          value={formData.autor}
+          onChange={e => onInputChange('autor', e.target.value)}
+          className={formErrors.autor ? 'border-destructive' : ''}
+        />
+        {formErrors.autor && (
+          <p className="text-xs text-destructive">{formErrors.autor}</p>
+        )}
+      </div>
+
+      <div className="grid gap-2">
+        <ImageUpload
+          value={formData.imagen_url}
+          onChange={(url) => onInputChange('imagen_url', url)}
+          folder="noticias"
+          label="Imagen"
+        />
       </div>
 
       <div className="flex items-center space-x-2">

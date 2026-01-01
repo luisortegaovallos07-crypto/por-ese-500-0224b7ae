@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { ImageUpload } from '@/components/ImageUpload';
 import {
   Globe,
   Calculator,
@@ -951,14 +952,12 @@ const Simulacros: React.FC = () => {
                 />
               </div>
 
-              <div className="grid gap-2">
-                <Label>URL de imagen (opcional)</Label>
-                <Input
-                  value={formData.imagen_url}
-                  onChange={e => handleInputChange('imagen_url', e.target.value)}
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                />
-              </div>
+              <ImageUpload
+                value={formData.imagen_url}
+                onChange={(url) => handleInputChange('imagen_url', url)}
+                folder="preguntas"
+                label="Imagen (opcional)"
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
