@@ -438,7 +438,7 @@ const Progreso: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Subject Bar Chart */}
+          {/* Subject Bar Chart - Ordenado de mayor a menor */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -446,7 +446,7 @@ const Progreso: React.FC = () => {
                 Rendimiento por Materia
               </CardTitle>
               <CardDescription>
-                Promedio de puntajes en cada área
+                Promedio de puntajes en cada área (de mayor a menor)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -460,7 +460,7 @@ const Progreso: React.FC = () => {
               ) : (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={subjectData} layout="vertical">
+                    <BarChart data={[...subjectData].sort((a, b) => b.score - a.score)} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis type="number" domain={[0, 100]} />
                       <YAxis type="category" dataKey="subject" width={100} className="text-xs" />
@@ -479,7 +479,7 @@ const Progreso: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Radar Chart */}
+          {/* Perfil de Competencias - Lista ordenada */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -487,7 +487,7 @@ const Progreso: React.FC = () => {
                 Perfil de Competencias
               </CardTitle>
               <CardDescription>
-                Visualización radial de tus fortalezas
+                Resultados ordenados de mayor a menor puntaje
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -499,21 +499,40 @@ const Progreso: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData}>
-                      <PolarGrid className="stroke-muted" />
-                      <PolarAngleAxis dataKey="subject" className="text-xs" />
-                      <PolarRadiusAxis domain={[0, 100]} />
-                      <Radar
-                        name="Puntaje"
-                        dataKey="A"
-                        stroke="hsl(var(--primary))"
-                        fill="hsl(var(--primary))"
-                        fillOpacity={0.3}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {[...subjectData]
+                    .sort((a, b) => b.score - a.score)
+                    .map((subject, index) => (
+                      <div 
+                        key={subject.subject} 
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                            index === 0 ? 'bg-yellow-500/20 text-yellow-600' :
+                            index === 1 ? 'bg-slate-400/20 text-slate-600' :
+                            index === 2 ? 'bg-amber-600/20 text-amber-700' :
+                            'bg-muted text-muted-foreground'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium">{subject.subject}</p>
+                            <p className="text-xs text-muted-foreground">{subject.count} simulacros</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-lg font-bold ${
+                            subject.score >= 70 ? 'text-success' : 
+                            subject.score >= 50 ? 'text-warning' : 
+                            subject.score > 0 ? 'text-destructive' : 'text-muted-foreground'
+                          }`}>
+                            {subject.score > 0 ? subject.score : '-'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">puntos</p>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               )}
             </CardContent>
