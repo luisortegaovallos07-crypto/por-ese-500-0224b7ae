@@ -1,22 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
-import { mockUsers, mockEstadisticas, User, UserRole } from '@/data/mockData';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { 
   Users, 
   BarChart3, 
   Calendar, 
-  Newspaper, 
   Shield, 
   CheckCircle, 
   XCircle,
   Plus,
   Pencil,
   Save,
-  X,
   Eye,
   EyeOff,
-  AlertCircle
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,15 +25,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
-// Estado local para simular la base de datos
-let usersData = [...mockUsers];
+interface UserWithRole {
+  id: string;
+  nombre: string;
+  email: string;
+  activo: boolean;
+  role: UserRole;
+  created_at: string | null;
+}
 
 interface UserFormData {
   nombre: string;
-  apellido: string;
   email: string;
   password: string;
   role: UserRole;
@@ -43,7 +46,6 @@ interface UserFormData {
 
 const initialFormData: UserFormData = {
   nombre: '',
-  apellido: '',
   email: '',
   password: '',
   role: 'estudiante',
@@ -51,10 +53,12 @@ const initialFormData: UserFormData = {
 };
 
 const Admin: React.FC = () => {
-  const { user: currentUser, isAdmin, isProfesor } = useAuth();
+  const { user: currentUser, isAdmin, profile } = useAuth();
   const { toast } = useToast();
   
-  const [users, setUsers] = useState<User[]>(usersData);
+  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -62,9 +66,58 @@ const Admin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof UserFormData, string>>>({});
 
-  const canManageUsers = isAdmin || isProfesor;
+  const canManageUsers = isAdmin;
 
-  // Validar el formulario
+  // Cargar usuarios desde Supabase
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      // Obtener perfiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      // Obtener roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('*');
+
+      if (rolesError) throw rolesError;
+
+      // Combinar datos
+      const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => {
+        const userRole = roles?.find(r => r.user_id === profile.id);
+        return {
+          id: profile.id,
+          nombre: profile.nombre,
+          email: profile.email,
+          activo: profile.activo ?? true,
+          role: (userRole?.role as UserRole) || 'estudiante',
+          created_at: profile.created_at,
+        };
+      });
+
+      setUsers(usersWithRoles);
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar los usuarios.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Validar formulario
   const validateForm = (): boolean => {
     const errors: Partial<Record<keyof UserFormData, string>> = {};
 
@@ -72,29 +125,16 @@ const Admin: React.FC = () => {
       errors.nombre = 'El nombre es requerido';
     }
 
-    if (!formData.apellido.trim()) {
-      errors.apellido = 'El apellido es requerido';
-    }
-
     if (!formData.email.trim()) {
       errors.email = 'El correo es requerido';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'El correo no es válido';
-    } else if (!isEditing && users.some(u => u.email.toLowerCase() === formData.email.toLowerCase())) {
-      errors.email = 'Este correo ya está registrado';
-    } else if (isEditing && users.some(u => u.email.toLowerCase() === formData.email.toLowerCase() && u.id !== editingUserId)) {
-      errors.email = 'Este correo ya está registrado por otro usuario';
     }
 
     if (!isEditing && !formData.password.trim()) {
       errors.password = 'La contraseña es requerida';
     } else if (!isEditing && formData.password.length < 6) {
       errors.password = 'La contraseña debe tener al menos 6 caracteres';
-    }
-
-    // Solo admin puede crear admins
-    if (formData.role === 'admin' && !isAdmin) {
-      errors.role = 'Solo los administradores pueden asignar rol de administrador';
     }
 
     setFormErrors(errors);
@@ -112,12 +152,11 @@ const Admin: React.FC = () => {
   };
 
   // Abrir diálogo para editar usuario
-  const handleOpenEditDialog = (user: User) => {
+  const handleOpenEditDialog = (user: UserWithRole) => {
     setFormData({
       nombre: user.nombre,
-      apellido: user.apellido,
       email: user.email,
-      password: '', // No mostramos la contraseña actual
+      password: '',
       role: user.role,
       activo: user.activo,
     });
@@ -140,96 +179,173 @@ const Admin: React.FC = () => {
   // Manejar cambios en el formulario
   const handleInputChange = (field: keyof UserFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Limpiar error del campo cuando el usuario escribe
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
 
-  // Crear nuevo usuario
-  const handleCreateUser = () => {
+  // Crear nuevo usuario con Supabase Auth
+  const handleCreateUser = async () => {
     if (!validateForm()) return;
 
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      nombre: formData.nombre.trim(),
-      apellido: formData.apellido.trim(),
-      email: formData.email.trim().toLowerCase(),
-      password: formData.password,
-      role: formData.role,
-      activo: formData.activo,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
+    setSaving(true);
+    try {
+      // Crear usuario en auth usando signUp
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            nombre: formData.nombre.trim(),
+          },
+        },
+      });
 
-    const updatedUsers = [...users, newUser];
-    setUsers(updatedUsers);
-    usersData = updatedUsers;
+      if (authError) {
+        if (authError.message.includes('User already registered')) {
+          toast({
+            title: 'Error',
+            description: 'Este correo ya está registrado.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        throw authError;
+      }
 
-    toast({
-      title: 'Usuario creado',
-      description: `El usuario ${newUser.nombre} ${newUser.apellido} ha sido creado exitosamente.`,
-    });
+      if (!authData.user) {
+        throw new Error('No se pudo crear el usuario');
+      }
 
-    handleCloseDialog();
+      // Esperar a que el trigger cree el perfil
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Actualizar el rol si no es estudiante
+      if (formData.role !== 'estudiante') {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .update({ role: formData.role })
+          .eq('user_id', authData.user.id);
+
+        if (roleError) {
+          console.error('Error updating role:', roleError);
+        }
+      }
+
+      // Actualizar estado activo si es false
+      if (!formData.activo) {
+        await supabase
+          .from('profiles')
+          .update({ activo: false })
+          .eq('id', authData.user.id);
+      }
+
+      toast({
+        title: 'Usuario creado',
+        description: `El usuario ${formData.nombre} ha sido creado exitosamente.`,
+      });
+
+      handleCloseDialog();
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo crear el usuario.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Actualizar usuario existente
-  const handleUpdateUser = () => {
+  const handleUpdateUser = async () => {
     if (!validateForm() || !editingUserId) return;
 
-    const updatedUsers = users.map(user => {
-      if (user.id === editingUserId) {
-        return {
-          ...user,
+    setSaving(true);
+    try {
+      // Actualizar perfil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
           nombre: formData.nombre.trim(),
-          apellido: formData.apellido.trim(),
-          email: formData.email.trim().toLowerCase(),
-          // Solo actualizar contraseña si se proporcionó una nueva
-          password: formData.password.trim() || user.password,
-          role: formData.role,
           activo: formData.activo,
-        };
+        })
+        .eq('id', editingUserId);
+
+      if (profileError) throw profileError;
+
+      // Actualizar rol
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .update({ role: formData.role })
+        .eq('user_id', editingUserId);
+
+      if (roleError) {
+        // Si no existe el rol, insertarlo
+        await supabase
+          .from('user_roles')
+          .insert({ user_id: editingUserId, role: formData.role });
       }
-      return user;
-    });
 
-    setUsers(updatedUsers);
-    usersData = updatedUsers;
+      toast({
+        title: 'Usuario actualizado',
+        description: 'Los datos del usuario han sido actualizados exitosamente.',
+      });
 
-    toast({
-      title: 'Usuario actualizado',
-      description: 'Los datos del usuario han sido actualizados exitosamente.',
-    });
-
-    handleCloseDialog();
+      handleCloseDialog();
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo actualizar el usuario.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Cambiar estado activo/inactivo
-  const handleToggleUserStatus = (userId: string) => {
-    const updatedUsers = users.map(user => {
-      if (user.id === userId) {
-        // No permitir desactivar al usuario actual
-        if (user.id === currentUser?.id) {
-          toast({
-            title: 'Operación no permitida',
-            description: 'No puedes desactivar tu propia cuenta.',
-            variant: 'destructive',
-          });
-          return user;
-        }
-        return { ...user, activo: !user.activo };
-      }
-      return user;
-    });
-
-    setUsers(updatedUsers);
-    usersData = updatedUsers;
-
+  const handleToggleUserStatus = async (userId: string) => {
     const targetUser = users.find(u => u.id === userId);
-    if (targetUser && targetUser.id !== currentUser?.id) {
+    if (!targetUser) return;
+
+    if (userId === currentUser?.id) {
       toast({
-        title: targetUser.activo ? 'Usuario desactivado' : 'Usuario activado',
-        description: `${targetUser.nombre} ${targetUser.apellido} ha sido ${targetUser.activo ? 'desactivado' : 'activado'}.`,
+        title: 'Operación no permitida',
+        description: 'No puedes desactivar tu propia cuenta.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const newStatus = !targetUser.activo;
+      const { error } = await supabase
+        .from('profiles')
+        .update({ activo: newStatus })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u => 
+        u.id === userId ? { ...u, activo: newStatus } : u
+      ));
+
+      toast({
+        title: newStatus ? 'Usuario activado' : 'Usuario desactivado',
+        description: `${targetUser.nombre} ha sido ${newStatus ? 'activado' : 'desactivado'}.`,
+      });
+    } catch (error: any) {
+      console.error('Error toggling user status:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo cambiar el estado del usuario.',
+        variant: 'destructive',
       });
     }
   };
@@ -258,28 +374,43 @@ const Admin: React.FC = () => {
     }
   };
 
-  // Estadísticas actualizadas
+  // Estadísticas
   const stats = {
     totalUsuarios: users.length,
     totalEstudiantes: users.filter(u => u.role === 'estudiante').length,
     totalProfesores: users.filter(u => u.role === 'profesor').length,
     totalAdmins: users.filter(u => u.role === 'admin').length,
     usuariosActivos: users.filter(u => u.activo).length,
-    ...mockEstadisticas,
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="page-container flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="page-container">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="section-title flex items-center gap-2">
-            <Shield className="h-8 w-8" />
-            Panel de Administración
-          </h1>
-          <p className="text-muted-foreground">
-            Gestión de usuarios y estadísticas del sistema.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="section-title flex items-center gap-2 mb-0">
+              <Shield className="h-8 w-8" />
+              Panel de Administración
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Gestión de usuarios y estadísticas del sistema.
+            </p>
+          </div>
+          <Button variant="outline" onClick={fetchUsers} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Actualizar
+          </Button>
         </div>
 
         {/* Estadísticas */}
@@ -306,8 +437,8 @@ const Admin: React.FC = () => {
             <CardContent className="p-4 flex items-center gap-3">
               <BarChart3 className="h-8 w-8 text-warning" />
               <div>
-                <p className="text-2xl font-bold">{stats.promedioGeneral}%</p>
-                <p className="text-xs text-muted-foreground">Promedio General</p>
+                <p className="text-2xl font-bold">{stats.totalEstudiantes}</p>
+                <p className="text-xs text-muted-foreground">Estudiantes</p>
               </div>
             </CardContent>
           </Card>
@@ -315,8 +446,8 @@ const Admin: React.FC = () => {
             <CardContent className="p-4 flex items-center gap-3">
               <Calendar className="h-8 w-8 text-accent-foreground" />
               <div>
-                <p className="text-2xl font-bold">{stats.eventosProximos}</p>
-                <p className="text-xs text-muted-foreground">Eventos Próximos</p>
+                <p className="text-2xl font-bold">{stats.totalProfesores}</p>
+                <p className="text-xs text-muted-foreground">Profesores</p>
               </div>
             </CardContent>
           </Card>
@@ -358,7 +489,7 @@ const Admin: React.FC = () => {
                     >
                       <td className="py-3 px-2">
                         <div>
-                          <p className="font-medium">{user.nombre} {user.apellido}</p>
+                          <p className="font-medium">{user.nombre}</p>
                           <p className="text-xs text-muted-foreground sm:hidden">{user.email}</p>
                         </div>
                       </td>
@@ -437,15 +568,15 @@ const Admin: React.FC = () => {
               </DialogTitle>
               <DialogDescription>
                 {isEditing
-                  ? 'Modifica los datos del usuario. Deja la contraseña vacía para mantener la actual.'
-                  : 'Completa los datos para registrar un nuevo usuario en el sistema.'}
+                  ? 'Modifica los datos del usuario.'
+                  : 'Completa los datos para registrar un nuevo usuario.'}
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
               {/* Nombre */}
               <div className="grid gap-2">
-                <Label htmlFor="nombre">Nombre *</Label>
+                <Label htmlFor="nombre">Nombre completo *</Label>
                 <Input
                   id="nombre"
                   placeholder="Ingresa el nombre"
@@ -455,21 +586,6 @@ const Admin: React.FC = () => {
                 />
                 {formErrors.nombre && (
                   <p className="text-xs text-destructive">{formErrors.nombre}</p>
-                )}
-              </div>
-
-              {/* Apellido */}
-              <div className="grid gap-2">
-                <Label htmlFor="apellido">Apellido *</Label>
-                <Input
-                  id="apellido"
-                  placeholder="Ingresa el apellido"
-                  value={formData.apellido}
-                  onChange={e => handleInputChange('apellido', e.target.value)}
-                  className={formErrors.apellido ? 'border-destructive' : ''}
-                />
-                {formErrors.apellido && (
-                  <p className="text-xs text-destructive">{formErrors.apellido}</p>
                 )}
               </div>
 
@@ -483,95 +599,79 @@ const Admin: React.FC = () => {
                   value={formData.email}
                   onChange={e => handleInputChange('email', e.target.value)}
                   className={formErrors.email ? 'border-destructive' : ''}
+                  disabled={isEditing}
                 />
                 {formErrors.email && (
                   <p className="text-xs text-destructive">{formErrors.email}</p>
                 )}
-              </div>
-
-              {/* Contraseña */}
-              <div className="grid gap-2">
-                <Label htmlFor="password">
-                  Contraseña {isEditing ? '(dejar vacía para mantener)' : '*'}
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={isEditing ? '••••••••' : 'Mínimo 6 caracteres'}
-                    value={formData.password}
-                    onChange={e => handleInputChange('password', e.target.value)}
-                    className={`pr-10 ${formErrors.password ? 'border-destructive' : ''}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {formErrors.password && (
-                  <p className="text-xs text-destructive">{formErrors.password}</p>
+                {isEditing && (
+                  <p className="text-xs text-muted-foreground">El correo no se puede modificar.</p>
                 )}
               </div>
+
+              {/* Contraseña - solo para crear */}
+              {!isEditing && (
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Contraseña *</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Mínimo 6 caracteres"
+                      value={formData.password}
+                      onChange={e => handleInputChange('password', e.target.value)}
+                      className={formErrors.password ? 'border-destructive pr-10' : 'pr-10'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {formErrors.password && (
+                    <p className="text-xs text-destructive">{formErrors.password}</p>
+                  )}
+                </div>
+              )}
 
               {/* Rol */}
               <div className="grid gap-2">
                 <Label htmlFor="role">Rol *</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value: UserRole) => handleInputChange('role', value)}
-                >
-                  <SelectTrigger className={formErrors.role ? 'border-destructive' : ''}>
+                <Select value={formData.role} onValueChange={val => handleInputChange('role', val)}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecciona un rol" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="estudiante">Estudiante</SelectItem>
                     <SelectItem value="profesor">Profesor</SelectItem>
-                    {isAdmin && <SelectItem value="admin">Administrador</SelectItem>}
+                    <SelectItem value="admin">Administrador</SelectItem>
                   </SelectContent>
                 </Select>
-                {formErrors.role && (
-                  <p className="text-xs text-destructive">{formErrors.role}</p>
-                )}
               </div>
 
-              {/* Estado Activo */}
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div>
-                  <Label htmlFor="activo" className="text-sm font-medium">
-                    Usuario Activo
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Los usuarios inactivos no pueden iniciar sesión.
-                  </p>
-                </div>
+              {/* Estado activo */}
+              <div className="flex items-center justify-between">
+                <Label htmlFor="activo" className="cursor-pointer">Usuario activo</Label>
                 <Switch
                   id="activo"
                   checked={formData.activo}
-                  onCheckedChange={checked => handleInputChange('activo', checked)}
+                  onCheckedChange={val => handleInputChange('activo', val)}
                 />
               </div>
-
-              {/* Aviso para profesores */}
-              {!isAdmin && formData.role === 'admin' && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Solo los administradores pueden crear usuarios con rol de administrador.
-                  </AlertDescription>
-                </Alert>
-              )}
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={handleCloseDialog}>
-                <X className="h-4 w-4 mr-2" />
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseDialog} disabled={saving}>
                 Cancelar
               </Button>
-              <Button onClick={isEditing ? handleUpdateUser : handleCreateUser}>
-                <Save className="h-4 w-4 mr-2" />
+              <Button 
+                onClick={isEditing ? handleUpdateUser : handleCreateUser} 
+                disabled={saving}
+                className="gap-2"
+              >
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isEditing ? 'Guardar Cambios' : 'Crear Usuario'}
               </Button>
             </DialogFooter>

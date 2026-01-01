@@ -74,7 +74,7 @@ const Contacto: React.FC = () => {
                 </div>
                 <div>
                   <p className="font-medium">Teléfono</p>
-                  <p className="text-sm text-muted-foreground">3127355132</p>
+                  <p className="text-sm text-muted-foreground">3182456525</p>
                 </div>
               </CardContent>
             </Card>

@@ -566,12 +566,12 @@ const Calendario: React.FC = () => {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="materia">Materia</Label>
-                  <Select value={formData.materia_id} onValueChange={val => handleInputChange('materia_id', val)}>
+                  <Select value={formData.materia_id || "none"} onValueChange={val => handleInputChange('materia_id', val === "none" ? "" : val)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Opcional" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin materia</SelectItem>
+                      <SelectItem value="none">Sin materia</SelectItem>
                       {materias.map(m => (
                         <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>
                       ))}
