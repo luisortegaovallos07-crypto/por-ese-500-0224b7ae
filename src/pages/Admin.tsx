@@ -42,6 +42,7 @@ interface UserFormData {
   nombre: string;
   email: string;
   password: string;
+  newPassword: string;
   role: UserRole;
   activo: boolean;
 }
@@ -50,6 +51,7 @@ const initialFormData: UserFormData = {
   nombre: '',
   email: '',
   password: '',
+  newPassword: '',
   role: 'estudiante',
   activo: true,
 };
@@ -141,6 +143,11 @@ const Admin: React.FC = () => {
       errors.password = 'La contraseña debe tener al menos 6 caracteres';
     }
 
+    // Validar nueva contraseña solo si se ingresó algo
+    if (isEditing && formData.newPassword.trim() && formData.newPassword.length < 6) {
+      errors.newPassword = 'La nueva contraseña debe tener al menos 6 caracteres';
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -161,6 +168,7 @@ const Admin: React.FC = () => {
       nombre: user.nombre,
       email: user.email,
       password: '',
+      newPassword: '',
       role: user.role,
       activo: user.activo,
     });
@@ -188,26 +196,35 @@ const Admin: React.FC = () => {
     }
   };
 
-  // Crear nuevo usuario con Supabase Auth
+  // Crear nuevo usuario con Edge Function (no inicia sesión)
   const handleCreateUser = async () => {
     if (!validateForm()) return;
 
     setSaving(true);
     try {
-      // Crear usuario en auth usando signUp
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            nombre: formData.nombre.trim(),
-          },
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error('No hay sesión activa');
+      }
+
+      const response = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+          nombre: formData.nombre.trim(),
+          role: formData.role,
+          activo: formData.activo,
         },
       });
 
-      if (authError) {
-        if (authError.message.includes('User already registered')) {
+      if (response.error) {
+        throw new Error(response.error.message || 'Error al crear usuario');
+      }
+
+      if (response.data?.error) {
+        if (response.data.error.includes('already') || response.data.error.includes('exists')) {
           toast({
             title: 'Error',
             description: 'Este correo ya está registrado.',
@@ -215,34 +232,7 @@ const Admin: React.FC = () => {
           });
           return;
         }
-        throw authError;
-      }
-
-      if (!authData.user) {
-        throw new Error('No se pudo crear el usuario');
-      }
-
-      // Esperar a que el trigger cree el perfil
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Actualizar el rol si no es estudiante
-      if (formData.role !== 'estudiante') {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .update({ role: formData.role })
-          .eq('user_id', authData.user.id);
-
-        if (roleError) {
-          console.error('Error updating role:', roleError);
-        }
-      }
-
-      // Actualizar estado activo si es false
-      if (!formData.activo) {
-        await supabase
-          .from('profiles')
-          .update({ activo: false })
-          .eq('id', authData.user.id);
+        throw new Error(response.data.error);
       }
 
       toast({
@@ -294,9 +284,29 @@ const Admin: React.FC = () => {
           .insert({ user_id: editingUserId, role: formData.role });
       }
 
+      // Actualizar contraseña si se proporcionó una nueva
+      if (formData.newPassword.trim()) {
+        const response = await supabase.functions.invoke('admin-update-password', {
+          body: {
+            userId: editingUserId,
+            newPassword: formData.newPassword,
+          },
+        });
+
+        if (response.error) {
+          throw new Error(response.error.message || 'Error al actualizar contraseña');
+        }
+
+        if (response.data?.error) {
+          throw new Error(response.data.error);
+        }
+      }
+
       toast({
         title: 'Usuario actualizado',
-        description: 'Los datos del usuario han sido actualizados exitosamente.',
+        description: formData.newPassword.trim() 
+          ? 'Los datos y la contraseña del usuario han sido actualizados exitosamente.'
+          : 'Los datos del usuario han sido actualizados exitosamente.',
       });
 
       handleCloseDialog();
@@ -305,7 +315,7 @@ const Admin: React.FC = () => {
       console.error('Error updating user:', error);
       toast({
         title: 'Error',
-        description: 'No se pudo actualizar el usuario.',
+        description: error.message || 'No se pudo actualizar el usuario.',
         variant: 'destructive',
       });
     } finally {
@@ -701,7 +711,34 @@ const Admin: React.FC = () => {
                 </div>
               )}
 
-              {/* Rol */}
+              {/* Nueva Contraseña - solo para editar */}
+              {isEditing && (
+                <div className="grid gap-2">
+                  <Label htmlFor="newPassword">Nueva Contraseña (opcional)</Label>
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Dejar vacío para no cambiar"
+                      value={formData.newPassword}
+                      onChange={e => handleInputChange('newPassword', e.target.value)}
+                      className={formErrors.newPassword ? 'border-destructive pr-10' : 'pr-10'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {formErrors.newPassword && (
+                    <p className="text-xs text-destructive">{formErrors.newPassword}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Mínimo 6 caracteres si deseas cambiarla.</p>
+                </div>
+              )}
+
               <div className="grid gap-2">
                 <Label htmlFor="role">Rol *</Label>
                 <Select value={formData.role} onValueChange={val => handleInputChange('role', val)}>
