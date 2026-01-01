@@ -86,9 +86,6 @@ export const Header: React.FC = () => {
               alt="POR ESE 500"
               className="h-10 w-10 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
             />
-            <span className="font-display text-xl font-bold text-primary tracking-tight">
-              POR ESE 500
-            </span>
           </Link>
 
           {/* Desktop Navigation */}
