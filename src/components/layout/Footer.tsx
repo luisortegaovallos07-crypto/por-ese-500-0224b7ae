@@ -70,9 +70,12 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-8 pt-6 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="mt-8 pt-6 border-t border-border flex flex-col items-center gap-4">
           <p className="text-sm text-muted-foreground">
             © {currentYear} POR ESE 500. Todos los derechos reservados.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Desarrollado por <span className="text-primary font-medium">Ing. de Sistemas Daniel Ortega</span>
           </p>
           <div className="flex items-center gap-4">
             <Link to="#" className="text-xs text-muted-foreground hover:text-primary transition-colors">
