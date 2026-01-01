@@ -107,6 +107,7 @@ export type Database = {
           icono: string | null
           id: string
           nombre: string
+          tiempo_simulacro: number
         }
         Insert: {
           color?: string | null
@@ -115,6 +116,7 @@ export type Database = {
           icono?: string | null
           id?: string
           nombre: string
+          tiempo_simulacro?: number
         }
         Update: {
           color?: string | null
@@ -123,6 +125,7 @@ export type Database = {
           icono?: string | null
           id?: string
           nombre?: string
+          tiempo_simulacro?: number
         }
         Relationships: []
       }
@@ -280,6 +283,7 @@ export type Database = {
           created_at: string | null
           detalles: Json | null
           id: string
+          materia_id: string | null
           puntaje: number
           respuestas_correctas: number
           tiempo_segundos: number
@@ -290,6 +294,7 @@ export type Database = {
           created_at?: string | null
           detalles?: Json | null
           id?: string
+          materia_id?: string | null
           puntaje: number
           respuestas_correctas: number
           tiempo_segundos: number
@@ -300,13 +305,22 @@ export type Database = {
           created_at?: string | null
           detalles?: Json | null
           id?: string
+          materia_id?: string | null
           puntaje?: number
           respuestas_correctas?: number
           tiempo_segundos?: number
           total_preguntas?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "resultados_simulacro_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "materias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
