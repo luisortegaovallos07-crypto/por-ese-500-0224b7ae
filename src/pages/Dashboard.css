@@ -1,8 +1,8 @@
 /* Dashboard Styles */
 .dashboard-container {
   max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+  margin: 0;
+  padding: 2rem 1.5rem;
 }
 
 .dashboard-header {
@@ -382,8 +382,8 @@
 
 /* Subjects List */
 .subjects-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 0.5rem;
 }
 
@@ -391,39 +391,47 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem;
+  padding: 0.625rem 0.75rem;
   border-radius: var(--radius);
-  transition: background-color 0.2s ease;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
 }
 
 .subject-item:hover {
   background-color: var(--muted);
+  border-color: var(--primary);
+  transform: translateX(4px);
 }
 
 .subject-icon {
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .subject-initial {
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .subject-name {
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   font-weight: 500;
+  color: var(--foreground);
 }
 
 /* Empty Message */
 .empty-message {
   color: var(--muted-foreground);
-  text-align: center;
+  text-align: left;
   padding: 1rem 0;
 }
 
