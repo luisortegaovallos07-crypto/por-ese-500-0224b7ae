@@ -209,14 +209,14 @@
 
 /* Empty state */
 .material-empty {
-  text-align: center;
+  text-align: left;
   padding: 3rem 1rem;
 }
 
 .material-empty svg {
   height: 3rem;
   width: 3rem;
-  margin: 0 auto 1rem;
+  margin: 0 0 1rem 0;
   color: var(--muted-foreground);
   opacity: 0.5;
 }
