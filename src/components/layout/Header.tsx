@@ -19,14 +19,7 @@ import {
   User,
   ChevronDown,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import './Header.css';
 
 const navItems = [
   { path: '/', label: 'Inicio', icon: Home, public: true },
@@ -44,11 +37,13 @@ export const Header: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
     setMobileMenuOpen(false);
+    setDropdownOpen(false);
   };
 
   const filteredNavItems = navItems.filter(item => {
@@ -68,28 +63,28 @@ export const Header: React.FC = () => {
 
   const getRoleBadgeClass = () => {
     switch (profile?.role) {
-      case 'admin': return 'bg-primary/10 text-primary';
-      case 'profesor': return 'bg-success/10 text-success';
-      case 'estudiante': return 'bg-accent text-accent-foreground';
+      case 'admin': return 'role-badge-admin';
+      case 'profesor': return 'role-badge-profesor';
+      case 'estudiante': return 'role-badge-estudiante';
       default: return '';
     }
   };
 
   return (
-    <header className="sticky top-0 z-50 glass-effect border-b border-border/50">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
+    <header className="header">
+      <div className="header-container">
+        <div className="header-content">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link to="/" className="header-logo">
             <img
               src={logoMain}
               alt="POR ESE 500"
-              className="h-10 w-10 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+              className="header-logo-img"
             />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="header-nav">
             {filteredNavItems.map(item => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
@@ -97,13 +92,9 @@ export const Header: React.FC = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground/70 hover:text-foreground hover:bg-muted'
-                  }`}
+                  className={`nav-link ${isActive ? 'nav-link-active' : ''}`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="nav-icon" />
                   {item.label}
                 </Link>
               );
@@ -112,70 +103,74 @@ export const Header: React.FC = () => {
             <RoleGate allowedRoles={['admin']}>
               <Link
                 to="/admin"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  location.pathname === '/admin'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-foreground/70 hover:text-foreground hover:bg-muted'
-                }`}
+                className={`nav-link ${location.pathname === '/admin' ? 'nav-link-active' : ''}`}
               >
-                <Settings className="h-4 w-4" />
+                <Settings className="nav-icon" />
                 Admin
               </Link>
             </RoleGate>
           </nav>
 
           {/* User Menu / Auth Buttons */}
-          <div className="hidden lg:flex items-center gap-3">
+          <div className="header-auth">
             {isAuthenticated && profile ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 px-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
+              <div className="dropdown">
+                <button 
+                  className="dropdown-trigger"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                >
+                  <div className="user-avatar">
+                    <User className="user-avatar-icon" />
+                  </div>
+                  <div className="user-info">
+                    <span className="user-name">{profile.nombre}</span>
+                    <span className={`role-badge ${getRoleBadgeClass()}`}>
+                      {getRoleLabel()}
+                    </span>
+                  </div>
+                  <ChevronDown className="dropdown-chevron" />
+                </button>
+                {dropdownOpen && (
+                  <>
+                    <div className="dropdown-overlay" onClick={() => setDropdownOpen(false)} />
+                    <div className="dropdown-content">
+                      <Link 
+                        to="/dashboard" 
+                        className="dropdown-item"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <LayoutDashboard className="dropdown-icon" />
+                        Mi Panel
+                      </Link>
+                      <div className="dropdown-separator" />
+                      <button onClick={handleLogout} className="dropdown-item dropdown-item-destructive">
+                        <LogOut className="dropdown-icon" />
+                        Cerrar Sesión
+                      </button>
                     </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-medium">{profile.nombre}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeClass()}`}>
-                        {getRoleLabel()}
-                      </span>
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard" className="flex items-center gap-2">
-                      <LayoutDashboard className="h-4 w-4" />
-                      Mi Panel
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Cerrar Sesión
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </>
+                )}
+              </div>
             ) : (
-              <Button asChild>
-                <Link to="/login">Iniciar Sesión</Link>
-              </Button>
+              <Link to="/login" className="btn btn-primary">
+                Iniciar Sesión
+              </Link>
             )}
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+            className="mobile-menu-btn"
           >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileMenuOpen ? <X className="mobile-menu-icon" /> : <Menu className="mobile-menu-icon" />}
           </button>
         </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="lg:hidden py-4 border-t border-border animate-fade-in">
-            <nav className="flex flex-col gap-1">
+          <div className="mobile-nav">
+            <nav className="mobile-nav-list">
               {filteredNavItems.map(item => {
                 const isActive = location.pathname === item.path;
                 const Icon = item.icon;
@@ -184,13 +179,9 @@ export const Header: React.FC = () => {
                     key={item.path}
                     to={item.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                      isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-foreground/70 hover:text-foreground hover:bg-muted'
-                    }`}
+                    className={`mobile-nav-link ${isActive ? 'mobile-nav-link-active' : ''}`}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="mobile-nav-icon" />
                     {item.label}
                   </Link>
                 );
@@ -200,36 +191,32 @@ export const Header: React.FC = () => {
                 <Link
                   to="/admin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                    location.pathname === '/admin'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground/70 hover:text-foreground hover:bg-muted'
-                  }`}
+                  className={`mobile-nav-link ${location.pathname === '/admin' ? 'mobile-nav-link-active' : ''}`}
                 >
-                  <Settings className="h-5 w-5" />
+                  <Settings className="mobile-nav-icon" />
                   Admin
                 </Link>
               </RoleGate>
 
-              <div className="border-t border-border mt-2 pt-2">
+              <div className="mobile-nav-divider">
                 {isAuthenticated && profile ? (
                   <>
-                    <div className="px-4 py-2 flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary" />
+                    <div className="mobile-user-info">
+                      <div className="mobile-user-avatar">
+                        <User className="mobile-user-avatar-icon" />
                       </div>
                       <div>
-                        <p className="font-medium">{profile.nombre}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeClass()}`}>
+                        <p className="mobile-user-name">{profile.nombre}</p>
+                        <span className={`role-badge ${getRoleBadgeClass()}`}>
                           {getRoleLabel()}
                         </span>
                       </div>
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                      className="mobile-logout-btn"
                     >
-                      <LogOut className="h-5 w-5" />
+                      <LogOut className="mobile-logout-icon" />
                       Cerrar Sesión
                     </button>
                   </>
@@ -237,7 +224,7 @@ export const Header: React.FC = () => {
                   <Link
                     to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 mx-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium"
+                    className="mobile-login-btn"
                   >
                     Iniciar Sesión
                   </Link>

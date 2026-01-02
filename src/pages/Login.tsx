@@ -3,12 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import logoMain from '@/assets/logo-main.jpeg';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, ArrowRight, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import './Login.css';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -81,223 +76,230 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="login-page">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTR2Mkg3djZoMTd2Mkgzdi00em0wLTR2Mkg3djZoMTd2Mkgzdi00em0wLTR2Mkg3djZoMTd2Mkgzdi00em0wLTR2Mkg3djZoMTd2Mkgzdi00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30"></div>
+      <div className="login-branding">
+        <div className="login-branding-pattern" />
         
-        <div className="relative z-10">
+        <div className="login-branding-content">
           <Link to="/">
-            <img src={logoMain} alt="POR ESE 500" className="h-20 w-auto bg-white/90 rounded-xl p-2" />
+            <img src={logoMain} alt="POR ESE 500" className="login-branding-logo" />
           </Link>
         </div>
 
-        <div className="relative z-10 space-y-6">
-          <h1 className="text-4xl font-bold text-white leading-tight">
+        <div className="login-branding-info">
+          <h1 className="login-branding-title">
             Plataforma de Preparación<br />Académica
           </h1>
-          <p className="text-xl text-white/80 max-w-md">
+          <p className="login-branding-quote">
             "Donde cada día de disciplina acerca los sueños al 500"
           </p>
-          <div className="flex items-center gap-4 pt-4">
-            <div className="flex -space-x-2">
+          <div className="login-branding-stats">
+            <div className="login-branding-avatars">
               {[1, 2, 3].map(i => (
-                <div
-                  key={i}
-                  className="h-10 w-10 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-white text-sm font-medium"
-                >
+                <div key={i} className="login-branding-avatar">
                   {i}
                 </div>
               ))}
             </div>
-            <p className="text-white/80 text-sm">+2.000 estudiantes preparándose</p>
+            <p className="login-branding-students">+2.000 estudiantes preparándose</p>
           </div>
         </div>
 
-        <div className="relative z-10 text-white/60 text-sm">
+        <div className="login-branding-footer">
           © 2026 POR ESE 500
         </div>
       </div>
 
       {/* Right Side - Login/Signup Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
-        <div className="w-full max-w-md space-y-8 animate-fade-in">
+      <div className="login-form-container">
+        <div className="login-form-wrapper animate-fade-in">
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center">
+          <div className="login-mobile-logo">
             <Link to="/">
-              <img src={logoMain} alt="POR ESE 500" className="h-16 w-auto mx-auto" />
+              <img src={logoMain} alt="POR ESE 500" className="login-mobile-logo-img" />
             </Link>
           </div>
 
-          <Card className="border-0 shadow-card">
-            <CardHeader className="space-y-1 text-center pb-4">
-              <CardTitle className="text-2xl font-bold">Bienvenido</CardTitle>
-              <CardDescription>
+          <div className="login-card">
+            <div className="login-card-header">
+              <h2 className="login-card-title">Bienvenido</h2>
+              <p className="login-card-description">
                 Accede a la plataforma de preparación académica
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-                  <TabsTrigger value="signup">Registrarse</TabsTrigger>
-                </TabsList>
+              </p>
+            </div>
 
-                {error && (
-                  <Alert variant="destructive" className="animate-fade-in mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+            <div className="login-card-content">
+              {/* Tabs */}
+              <div className="login-tabs">
+                <button
+                  className={`login-tab ${activeTab === 'login' ? 'login-tab-active' : ''}`}
+                  onClick={() => setActiveTab('login')}
+                >
+                  Iniciar Sesión
+                </button>
+                <button
+                  className={`login-tab ${activeTab === 'signup' ? 'login-tab-active' : ''}`}
+                  onClick={() => setActiveTab('signup')}
+                >
+                  Registrarse
+                </button>
+              </div>
 
-                {success && (
-                  <Alert className="animate-fade-in mb-4 border-success bg-success/10">
-                    <AlertCircle className="h-4 w-4 text-success" />
-                    <AlertDescription className="text-success">{success}</AlertDescription>
-                  </Alert>
-                )}
+              {error && (
+                <div className="login-alert login-alert-error animate-fade-in">
+                  <AlertCircle className="login-alert-icon" />
+                  <span>{error}</span>
+                </div>
+              )}
 
-                <TabsContent value="login">
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Correo Electrónico</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="correo@ejemplo.com"
-                          value={email}
-                          onChange={e => setEmail(e.target.value)}
-                          className="pl-10"
-                          required
-                        />
-                      </div>
+              {success && (
+                <div className="login-alert login-alert-success animate-fade-in">
+                  <AlertCircle className="login-alert-icon" />
+                  <span>{success}</span>
+                </div>
+              )}
+
+              {activeTab === 'login' && (
+                <form onSubmit={handleLogin} className="login-form">
+                  <div className="form-group">
+                    <label htmlFor="email" className="form-label">Correo Electrónico</label>
+                    <div className="input-wrapper">
+                      <Mail className="input-icon" />
+                      <input
+                        id="email"
+                        type="email"
+                        placeholder="correo@ejemplo.com"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className="input input-with-icon"
+                        required
+                      />
                     </div>
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Contraseña</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={e => setPassword(e.target.value)}
-                          className="pl-10 pr-10"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
+                  <div className="form-group">
+                    <label htmlFor="password" className="form-label">Contraseña</label>
+                    <div className="input-wrapper">
+                      <Lock className="input-icon" />
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        className="input input-with-icon input-with-action"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="input-action"
+                      >
+                        {showPassword ? <EyeOff className="input-action-icon" /> : <Eye className="input-action-icon" />}
+                      </button>
                     </div>
+                  </div>
 
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <span className="flex items-center gap-2">
-                          <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          Ingresando...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          Ingresar
-                          <ArrowRight className="h-4 w-4" />
-                        </span>
-                      )}
-                    </Button>
-                  </form>
-                </TabsContent>
+                  <button type="submit" className="btn btn-primary btn-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <span className="btn-loading">
+                        <span className="btn-spinner" />
+                        Ingresando...
+                      </span>
+                    ) : (
+                      <span className="btn-content">
+                        Ingresar
+                        <ArrowRight className="btn-icon" />
+                      </span>
+                    )}
+                  </button>
+                </form>
+              )}
 
-                <TabsContent value="signup">
-                  <form onSubmit={handleSignup} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="nombre">Nombre Completo</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="nombre"
-                          type="text"
-                          placeholder="Tu nombre completo"
-                          value={nombre}
-                          onChange={e => setNombre(e.target.value)}
-                          className="pl-10"
-                          required
-                        />
-                      </div>
+              {activeTab === 'signup' && (
+                <form onSubmit={handleSignup} className="login-form">
+                  <div className="form-group">
+                    <label htmlFor="nombre" className="form-label">Nombre Completo</label>
+                    <div className="input-wrapper">
+                      <User className="input-icon" />
+                      <input
+                        id="nombre"
+                        type="text"
+                        placeholder="Tu nombre completo"
+                        value={nombre}
+                        onChange={e => setNombre(e.target.value)}
+                        className="input input-with-icon"
+                        required
+                      />
                     </div>
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Correo Electrónico</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="correo@ejemplo.com"
-                          value={email}
-                          onChange={e => setEmail(e.target.value)}
-                          className="pl-10"
-                          required
-                        />
-                      </div>
+                  <div className="form-group">
+                    <label htmlFor="signup-email" className="form-label">Correo Electrónico</label>
+                    <div className="input-wrapper">
+                      <Mail className="input-icon" />
+                      <input
+                        id="signup-email"
+                        type="email"
+                        placeholder="correo@ejemplo.com"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className="input input-with-icon"
+                        required
+                      />
                     </div>
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Contraseña</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Mínimo 6 caracteres"
-                          value={password}
-                          onChange={e => setPassword(e.target.value)}
-                          className="pl-10 pr-10"
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
+                  <div className="form-group">
+                    <label htmlFor="signup-password" className="form-label">Contraseña</label>
+                    <div className="input-wrapper">
+                      <Lock className="input-icon" />
+                      <input
+                        id="signup-password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Mínimo 6 caracteres"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        className="input input-with-icon input-with-action"
+                        required
+                        minLength={6}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="input-action"
+                      >
+                        {showPassword ? <EyeOff className="input-action-icon" /> : <Eye className="input-action-icon" />}
+                      </button>
                     </div>
+                  </div>
 
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <span className="flex items-center gap-2">
-                          <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          Creando cuenta...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          Crear Cuenta
-                          <ArrowRight className="h-4 w-4" />
-                        </span>
-                      )}
-                    </Button>
+                  <button type="submit" className="btn btn-primary btn-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <span className="btn-loading">
+                        <span className="btn-spinner" />
+                        Creando cuenta...
+                      </span>
+                    ) : (
+                      <span className="btn-content">
+                        Crear Cuenta
+                        <ArrowRight className="btn-icon" />
+                      </span>
+                    )}
+                  </button>
 
-                    <p className="text-xs text-muted-foreground text-center">
-                      Al registrarte, aceptas nuestros términos y condiciones.
-                    </p>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+                  <p className="login-terms">
+                    Al registrarte, aceptas nuestros términos y condiciones.
+                  </p>
+                </form>
+              )}
+            </div>
+          </div>
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="login-help">
             ¿Problemas para acceder?{' '}
-            <Link to="/contacto" className="text-primary hover:underline">
+            <Link to="/contacto" className="login-help-link">
               Contacta al administrador
             </Link>
           </p>
