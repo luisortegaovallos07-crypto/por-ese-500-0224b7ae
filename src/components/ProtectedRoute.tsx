@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
+import './ProtectedRoute.css';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -19,10 +20,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground">Cargando...</p>
+      <div className="loading-screen">
+        <div className="loading-content">
+          <div className="loading-spinner" />
+          <p className="loading-text">Cargando...</p>
         </div>
       </div>
     );
@@ -42,18 +43,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   return <>{children}</>;
 };
 
-// HOC for role-based component rendering
+// Component for role-based rendering (non-forwarding)
 interface RoleGateProps {
   children: React.ReactNode;
   allowedRoles: UserRole[];
   fallback?: React.ReactNode;
 }
 
-export const RoleGate: React.FC<RoleGateProps> = ({ children, allowedRoles, fallback = null }) => {
+export const RoleGate = ({ children, allowedRoles, fallback = null }: RoleGateProps): React.ReactElement | null => {
   const { profile } = useAuth();
 
   if (!profile || !allowedRoles.includes(profile.role)) {
-    return <>{fallback}</>;
+    return fallback ? <>{fallback}</> : null;
   }
 
   return <>{children}</>;

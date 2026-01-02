@@ -35,6 +35,7 @@ import {
   PolarRadiusAxis,
   Radar,
 } from 'recharts';
+import './Progreso.css';
 
 interface Resultado {
   id: string;
