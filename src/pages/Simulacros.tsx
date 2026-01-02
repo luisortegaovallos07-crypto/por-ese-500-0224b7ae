@@ -43,7 +43,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import './Simulacros.css';
 
@@ -64,7 +73,6 @@ interface Materia {
   tiempo_simulacro: number;
 }
 
-// Pregunta completa (para admin/profesor)
 interface Pregunta {
   id: string;
   materia_id: string;
@@ -79,7 +87,6 @@ interface Pregunta {
   activa: boolean | null;
 }
 
-// Pregunta para simulacro (sin respuesta_correcta ni explicacion)
 interface PreguntaSimulacro {
   id: string;
   materia_id: string;
@@ -92,7 +99,6 @@ interface PreguntaSimulacro {
   activa: boolean | null;
 }
 
-// Resultado de verificación del simulacro
 interface VerifySimulacroResult {
   correctas: number;
   total: number;
@@ -131,14 +137,13 @@ const initialFormData: PreguntaFormData = {
   activa: true,
 };
 
-// Componente del cronómetro
 const Cronometro: React.FC<{ segundos: number }> = ({ segundos }) => {
   const minutos = Math.floor(segundos / 60);
   const segs = segundos % 60;
   return (
-    <div className="flex items-center gap-2 text-lg font-mono bg-muted px-4 py-2 rounded-lg">
-      <Timer className="h-5 w-5 text-primary" />
-      <span className={segundos < 60 ? 'text-destructive font-bold' : ''}>
+    <div className="cronometro">
+      <Timer />
+      <span className={segundos < 60 ? 'cronometro-warning' : ''}>
         {String(minutos).padStart(2, '0')}:{String(segs).padStart(2, '0')}
       </span>
     </div>
@@ -150,14 +155,12 @@ const Simulacros: React.FC = () => {
   const { toast } = useToast();
   const canManageQuestions = isAdmin || isProfesor;
 
-  // Estados de datos
   const [materias, setMaterias] = useState<Materia[]>([]);
-  const [preguntas, setPreguntas] = useState<Pregunta[]>([]); // Solo para admin/profesor
-  const [preguntasEstudiante, setPreguntasEstudiante] = useState<PreguntaSimulacro[]>([]); // Para estudiantes
+  const [preguntas, setPreguntas] = useState<Pregunta[]>([]);
+  const [preguntasEstudiante, setPreguntasEstudiante] = useState<PreguntaSimulacro[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Estados de UI
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingPreguntaId, setEditingPreguntaId] = useState<string | null>(null);
@@ -171,7 +174,6 @@ const Simulacros: React.FC = () => {
   const [editingMateriaTime, setEditingMateriaTime] = useState<Materia | null>(null);
   const [newTimeMinutes, setNewTimeMinutes] = useState(30);
 
-  // Estados del simulacro activo
   const [simulacroActivo, setSimulacroActivo] = useState(false);
   const [simulacroMateria, setSimulacroMateria] = useState<Materia | null>(null);
   const [preguntasSimulacro, setPreguntasSimulacro] = useState<PreguntaSimulacro[]>([]);
@@ -189,28 +191,24 @@ const Simulacros: React.FC = () => {
     tiempo: number;
   } | null>(null);
 
-  // Cargar datos
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Cargar materias para todos
         const materiasRes = await supabase.from('materias').select('*').order('nombre');
         if (materiasRes.error) throw materiasRes.error;
         setMaterias(materiasRes.data || []);
 
         if (canManageQuestions) {
-          // Admin/Profesor: cargar preguntas completas (con respuestas)
           const preguntasRes = await supabase.from('preguntas').select('*').order('created_at', { ascending: false });
           if (preguntasRes.error) throw preguntasRes.error;
           setPreguntas(preguntasRes.data || []);
         } else {
-          // Estudiantes: cargar desde vista segura (sin respuestas)
           const preguntasRes = await supabase.from('preguntas_simulacro').select('*');
           if (preguntasRes.error) throw preguntasRes.error;
           setPreguntasEstudiante((preguntasRes.data || []) as PreguntaSimulacro[]);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error loading data:', error);
         toast({
           title: 'Error',
@@ -223,9 +221,8 @@ const Simulacros: React.FC = () => {
     };
 
     fetchData();
-  }, [canManageQuestions]);
+  }, [canManageQuestions, toast]);
 
-  // Cronómetro general por materia
   useEffect(() => {
     if (!simulacroActivo || simulacroTerminado) return;
 
@@ -246,18 +243,8 @@ const Simulacros: React.FC = () => {
     return preguntas.filter(p => p.materia_id === materiaId);
   };
 
-  const getPreguntasActivasByMateria = (materiaId: string) => {
-    if (canManageQuestions) {
-      return preguntas.filter(p => p.materia_id === materiaId && p.activa);
-    }
-    // Estudiantes: usar vista segura (sin respuestas)
-    return preguntasEstudiante.filter(p => p.materia_id === materiaId && p.activa);
-  };
-
-  // Obtener preguntas para simulacro (vista segura para estudiantes)
   const getPreguntasSimulacroByMateria = (materiaId: string): PreguntaSimulacro[] => {
     if (canManageQuestions) {
-      // Para admin/profesor, convertir a formato de simulacro (sin respuestas para el simulacro activo)
       return preguntas
         .filter(p => p.materia_id === materiaId && p.activa)
         .map(p => ({
@@ -275,7 +262,6 @@ const Simulacros: React.FC = () => {
     return preguntasEstudiante.filter(p => p.materia_id === materiaId && p.activa);
   };
 
-  // Validar formulario
   const validateForm = (): boolean => {
     const errors: Partial<Record<keyof PreguntaFormData, string>> = {};
 
@@ -290,7 +276,6 @@ const Simulacros: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Abrir diálogo para crear pregunta
   const handleOpenCreateDialog = (materiaId?: string) => {
     setFormData({ ...initialFormData, materia_id: materiaId || '' });
     setFormErrors({});
@@ -299,7 +284,6 @@ const Simulacros: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  // Abrir diálogo para editar pregunta
   const handleOpenEditDialog = (pregunta: Pregunta) => {
     setFormData({
       materia_id: pregunta.materia_id,
@@ -334,7 +318,6 @@ const Simulacros: React.FC = () => {
     }
   };
 
-  // Crear pregunta
   const handleCreatePregunta = async () => {
     if (!validateForm() || !user) return;
 
@@ -359,7 +342,7 @@ const Simulacros: React.FC = () => {
       setPreguntas(prev => [data, ...prev]);
       toast({ title: 'Pregunta creada', description: 'La pregunta ha sido añadida.' });
       handleCloseDialog();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating question:', error);
       toast({ title: 'Error', description: 'No se pudo crear la pregunta.', variant: 'destructive' });
     } finally {
@@ -367,7 +350,6 @@ const Simulacros: React.FC = () => {
     }
   };
 
-  // Actualizar pregunta
   const handleUpdatePregunta = async () => {
     if (!validateForm() || !editingPreguntaId) return;
 
@@ -391,7 +373,7 @@ const Simulacros: React.FC = () => {
       setPreguntas(prev => prev.map(p => p.id === editingPreguntaId ? data : p));
       toast({ title: 'Pregunta actualizada', description: 'Los cambios han sido guardados.' });
       handleCloseDialog();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating question:', error);
       toast({ title: 'Error', description: 'No se pudo actualizar la pregunta.', variant: 'destructive' });
     } finally {
@@ -413,7 +395,7 @@ const Simulacros: React.FC = () => {
 
       setPreguntas(prev => prev.filter(p => p.id !== preguntaToDelete));
       toast({ title: 'Pregunta eliminada', description: 'La pregunta ha sido eliminada.' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting question:', error);
       toast({ title: 'Error', description: 'No se pudo eliminar la pregunta.', variant: 'destructive' });
     } finally {
@@ -427,7 +409,6 @@ const Simulacros: React.FC = () => {
     setShowQuestionsDialog(true);
   };
 
-  // Configurar tiempo por materia (solo admin)
   const handleOpenTimeDialog = (materia: Materia) => {
     setEditingMateriaTime(materia);
     setNewTimeMinutes(Math.floor(materia.tiempo_simulacro / 60));
@@ -447,12 +428,12 @@ const Simulacros: React.FC = () => {
 
       if (error) throw error;
 
-      setMaterias(prev => prev.map(m => 
+      setMaterias(prev => prev.map(m =>
         m.id === editingMateriaTime.id ? { ...m, tiempo_simulacro: tiempoSegundos } : m
       ));
       toast({ title: 'Tiempo actualizado', description: `Tiempo configurado: ${newTimeMinutes} minutos.` });
       setShowTimeDialog(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving time:', error);
       toast({ title: 'Error', description: 'No se pudo guardar el tiempo.', variant: 'destructive' });
     } finally {
@@ -460,7 +441,6 @@ const Simulacros: React.FC = () => {
     }
   };
 
-  // Iniciar simulacro con tiempo GENERAL por materia
   const iniciarSimulacro = (materia: Materia) => {
     const preguntasParaSimulacro = getPreguntasSimulacroByMateria(materia.id);
     if (preguntasParaSimulacro.length === 0) {
@@ -472,15 +452,13 @@ const Simulacros: React.FC = () => {
       return;
     }
 
-    // Mezclar preguntas
     const preguntasMezcladas = [...preguntasParaSimulacro].sort(() => Math.random() - 0.5);
-    
+
     setPreguntasSimulacro(preguntasMezcladas);
     setSimulacroMateria(materia);
     setPreguntaActual(0);
     setRespuestas({});
     setResultadoVerificacion(null);
-    // Tiempo GENERAL por materia (configurado en la materia)
     const tiempo = materia.tiempo_simulacro || 1800;
     setTiempoRestante(tiempo);
     setTiempoInicial(tiempo);
@@ -489,20 +467,17 @@ const Simulacros: React.FC = () => {
     setResultadoFinal(null);
   };
 
-  // Seleccionar respuesta
   const seleccionarRespuesta = (preguntaId: string, opcion: string) => {
     setRespuestas(prev => ({ ...prev, [preguntaId]: opcion }));
   };
 
-  // Finalizar simulacro - Verificar respuestas con edge function
   const finalizarSimulacro = useCallback(async () => {
     setSimulacroTerminado(true);
-    
+
     const tiempoUsado = tiempoInicial - tiempoRestante;
     const preguntaIds = preguntasSimulacro.map(p => p.id);
-    
+
     try {
-      // Llamar a edge function para verificar respuestas
       const { data, error } = await supabase.functions.invoke('verify-simulacro', {
         body: {
           pregunta_ids: preguntaIds,
@@ -514,11 +489,10 @@ const Simulacros: React.FC = () => {
 
       const resultado = data as VerifySimulacroResult;
       setResultadoVerificacion(resultado);
-      
+
       const { correctas, total, puntaje } = resultado;
       setResultadoFinal({ correctas, total, puntaje, porcentaje: puntaje, tiempo: tiempoUsado });
 
-      // Guardar resultado en base de datos
       if (user && simulacroMateria) {
         await supabase.from('resultados_simulacro').insert({
           user_id: user.id,
@@ -537,7 +511,6 @@ const Simulacros: React.FC = () => {
         description: 'No se pudo verificar el simulacro.',
         variant: 'destructive',
       });
-      // Fallback: mostrar resultado sin detalles
       setResultadoFinal({
         correctas: 0,
         total: preguntasSimulacro.length,
@@ -558,15 +531,109 @@ const Simulacros: React.FC = () => {
   };
 
   const selectedMateria = materias.find(m => m.id === selectedMateriaForQuestions);
-  const selectedMateriaPreguntas = selectedMateriaForQuestions 
+  const selectedMateriaPreguntas = selectedMateriaForQuestions
     ? getPreguntasByMateria(selectedMateriaForQuestions)
     : [];
 
   if (loading) {
     return (
       <Layout>
-        <div className="page-container flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="page-container">
+          <div className="simulacros-loading">
+            <Loader2 />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Vista de resultados
+  if (simulacroActivo && simulacroTerminado && resultadoFinal) {
+    return (
+      <Layout>
+        <div className="page-container resultado-container">
+          <Card className="resultado-card">
+            <CardHeader>
+              <div className="resultado-icon">
+                <Award />
+              </div>
+              <CardTitle>¡Simulacro Completado!</CardTitle>
+              <CardDescription>{simulacroMateria?.nombre}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="resultado-score">
+                {resultadoFinal.puntaje}
+                <span>/100</span>
+              </div>
+
+              <div className="resultado-stats">
+                <div className="resultado-stat">
+                  <CheckCircle className="success" />
+                  <p className="resultado-stat-value">{resultadoFinal.correctas}</p>
+                  <p className="resultado-stat-label">Correctas</p>
+                </div>
+                <div className="resultado-stat">
+                  <XCircle className="destructive" />
+                  <p className="resultado-stat-value">{resultadoFinal.total - resultadoFinal.correctas}</p>
+                  <p className="resultado-stat-label">Incorrectas</p>
+                </div>
+                <div className="resultado-stat">
+                  <Clock className="primary" />
+                  <p className="resultado-stat-value">
+                    {Math.floor(resultadoFinal.tiempo / 60)}:{String(resultadoFinal.tiempo % 60).padStart(2, '0')}
+                  </p>
+                  <p className="resultado-stat-label">Tiempo</p>
+                </div>
+              </div>
+
+              <p className="resultado-porcentaje">
+                <span>Porcentaje: </span>
+                <strong className={resultadoFinal.porcentaje >= 60 ? 'aprobado' : 'reprobado'}>
+                  {resultadoFinal.porcentaje}%
+                </strong>
+              </p>
+
+              <Progress value={resultadoFinal.porcentaje} className="resultado-progress" />
+
+              <div className="revision-container">
+                <h4>Revisión de respuestas:</h4>
+                <div className="revision-list">
+                  {preguntasSimulacro.map((p, index) => {
+                    const detalle = resultadoVerificacion?.detalles[p.id];
+                    const esCorrecta = detalle?.es_correcta ?? false;
+                    return (
+                      <div key={p.id} className={`revision-item ${esCorrecta ? 'correcta' : 'incorrecta'}`}>
+                        <div className="revision-item-header">
+                          {esCorrecta ? (
+                            <CheckCircle className="success" />
+                          ) : (
+                            <XCircle className="destructive" />
+                          )}
+                          <div className="revision-item-content">
+                            <p className="titulo">Pregunta {index + 1}</p>
+                            <p className="pregunta-text">{p.pregunta}</p>
+                            {!esCorrecta && detalle && (
+                              <p className="respuesta-correcta">Respuesta correcta: {detalle.respuesta_correcta}</p>
+                            )}
+                            {detalle?.explicacion && (
+                              <p className="explicacion">{detalle.explicacion}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Button onClick={cerrarSimulacro} className="resultado-action">
+                <span className="resultado-action-content">
+                  <RotateCcw />
+                  Volver a Simulacros
+                </span>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
@@ -582,134 +649,47 @@ const Simulacros: React.FC = () => {
       { key: 'D', value: preguntaActualData?.opcion_d },
     ];
 
-    if (simulacroTerminado && resultadoFinal) {
-      return (
-        <Layout>
-          <div className="page-container max-w-2xl mx-auto">
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Award className="h-10 w-10 text-primary" />
-                </div>
-                <CardTitle className="text-3xl">¡Simulacro Completado!</CardTitle>
-                <CardDescription>{simulacroMateria?.nombre}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="text-6xl font-bold text-primary">
-                  {resultadoFinal.puntaje}
-                  <span className="text-2xl text-muted-foreground">/100</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-4 rounded-lg bg-muted">
-                    <CheckCircle className="h-6 w-6 text-success mx-auto mb-2" />
-                    <p className="text-2xl font-bold">{resultadoFinal.correctas}</p>
-                    <p className="text-xs text-muted-foreground">Correctas</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted">
-                    <XCircle className="h-6 w-6 text-destructive mx-auto mb-2" />
-                    <p className="text-2xl font-bold">{resultadoFinal.total - resultadoFinal.correctas}</p>
-                    <p className="text-xs text-muted-foreground">Incorrectas</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted">
-                    <Clock className="h-6 w-6 text-primary mx-auto mb-2" />
-                    <p className="text-2xl font-bold">{Math.floor(resultadoFinal.tiempo / 60)}:{String(resultadoFinal.tiempo % 60).padStart(2, '0')}</p>
-                    <p className="text-xs text-muted-foreground">Tiempo</p>
-                  </div>
-                </div>
-
-                <div className="text-lg">
-                  <span className="text-muted-foreground">Porcentaje: </span>
-                  <span className={`font-bold ${resultadoFinal.porcentaje >= 60 ? 'text-success' : 'text-destructive'}`}>
-                    {resultadoFinal.porcentaje}%
-                  </span>
-                </div>
-
-                <Progress value={resultadoFinal.porcentaje} className="h-3" />
-
-                <div className="space-y-3 text-left max-h-60 overflow-y-auto">
-                  <h4 className="font-semibold">Revisión de respuestas:</h4>
-                  {preguntasSimulacro.map((p, index) => {
-                    const detalle = resultadoVerificacion?.detalles[p.id];
-                    const esCorrecta = detalle?.es_correcta ?? false;
-                    return (
-                      <div key={p.id} className={`p-3 rounded-lg border ${esCorrecta ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5'}`}>
-                        <div className="flex items-start gap-2">
-                          {esCorrecta ? <CheckCircle className="h-4 w-4 text-success mt-0.5" /> : <XCircle className="h-4 w-4 text-destructive mt-0.5" />}
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">Pregunta {index + 1}</p>
-                            <p className="text-xs text-muted-foreground line-clamp-2">{p.pregunta}</p>
-                            {!esCorrecta && detalle && (
-                              <p className="text-xs text-success mt-1">Respuesta correcta: {detalle.respuesta_correcta}</p>
-                            )}
-                            {detalle?.explicacion && (
-                              <p className="text-xs text-muted-foreground mt-1 italic">{detalle.explicacion}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <Button onClick={cerrarSimulacro} className="w-full gap-2">
-                  <RotateCcw className="h-4 w-4" />
-                  Volver a Simulacros
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </Layout>
-      );
-    }
-
     return (
       <Layout>
-        <div className="page-container max-w-3xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold">{simulacroMateria?.nombre}</h2>
-              <p className="text-sm text-muted-foreground">Pregunta {preguntaActual + 1} de {preguntasSimulacro.length}</p>
+        <div className="page-container simulacro-container">
+          <div className="simulacro-header">
+            <div className="simulacro-header-info">
+              <h2>{simulacroMateria?.nombre}</h2>
+              <p>Pregunta {preguntaActual + 1} de {preguntasSimulacro.length}</p>
             </div>
             <Cronometro segundos={tiempoRestante} />
           </div>
 
-          <Progress value={((preguntaActual + 1) / preguntasSimulacro.length) * 100} className="h-2 mb-6" />
+          <Progress value={((preguntaActual + 1) / preguntasSimulacro.length) * 100} className="simulacro-progress" />
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg leading-relaxed">{preguntaActualData?.pregunta}</CardTitle>
+              <CardTitle className="pregunta-texto">{preguntaActualData?.pregunta}</CardTitle>
               {preguntaActualData?.imagen_url && (
-                <div className="mt-4">
-                  <img 
-                    src={preguntaActualData.imagen_url} 
-                    alt="Imagen de la pregunta" 
-                    className="max-w-full max-h-64 object-contain rounded-lg border"
-                  />
-                </div>
+                <img
+                  src={preguntaActualData.imagen_url}
+                  alt="Imagen de la pregunta"
+                  className="pregunta-imagen"
+                />
               )}
             </CardHeader>
-            <CardContent className="space-y-3">
-              {opciones.map(op => (
-                <button
-                  key={op.key}
-                  onClick={() => seleccionarRespuesta(preguntaActualData.id, op.key)}
-                  className={`w-full p-4 rounded-lg border text-left transition-all ${
-                    respuestas[preguntaActualData.id] === op.key
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                  }`}
-                >
-                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-muted text-sm font-medium mr-3">
-                    {op.key}
-                  </span>
-                  {op.value}
-                </button>
-              ))}
+            <CardContent>
+              <div className="opciones-container">
+                {opciones.map(op => (
+                  <button
+                    key={op.key}
+                    onClick={() => seleccionarRespuesta(preguntaActualData.id, op.key)}
+                    className={`opcion-button ${respuestas[preguntaActualData.id] === op.key ? 'selected' : ''}`}
+                  >
+                    <span className="opcion-letra">{op.key}</span>
+                    {op.value}
+                  </button>
+                ))}
+              </div>
             </CardContent>
           </Card>
 
-          <div className="flex items-center justify-between mt-6">
+          <div className="simulacro-navigation">
             <Button
               variant="outline"
               disabled={preguntaActual === 0}
@@ -718,17 +698,17 @@ const Simulacros: React.FC = () => {
               Anterior
             </Button>
 
-            <div className="flex gap-1 flex-wrap justify-center max-w-xs">
+            <div className="simulacro-navigation-dots">
               {preguntasSimulacro.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setPreguntaActual(i)}
-                  className={`h-8 w-8 rounded-full text-xs font-medium transition-colors ${
+                  className={`nav-dot ${
                     i === preguntaActual
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'current'
                       : respuestas[preguntasSimulacro[i].id]
-                        ? 'bg-success/20 text-success'
-                        : 'bg-muted text-muted-foreground'
+                        ? 'answered'
+                        : 'unanswered'
                   }`}
                 >
                   {i + 1}
@@ -751,75 +731,73 @@ const Simulacros: React.FC = () => {
     );
   }
 
+  // Vista principal
   return (
     <Layout>
       <div className="page-container">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="section-title mb-0">Simulacros</h1>
-            <p className="text-muted-foreground max-w-2xl mt-2">
-              Practica con simulacros. Cada materia se califica de 0 a 100.
-            </p>
+        <div className="simulacros-header">
+          <div className="simulacros-header-text">
+            <h1 className="section-title">Simulacros</h1>
+            <p>Practica con simulacros. Cada materia se califica de 0 a 100.</p>
           </div>
           {canManageQuestions && (
-            <Button onClick={() => handleOpenCreateDialog()} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nueva Pregunta
+            <Button onClick={() => handleOpenCreateDialog()}>
+              <span className="btn-gap">
+                <Plus />
+                Nueva Pregunta
+              </span>
             </Button>
           )}
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="stats-grid">
           <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Target className="h-5 w-5 text-primary" />
+            <div className="stat-card-content">
+              <div className="stat-icon primary">
+                <Target />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{materias.length}</p>
-                <p className="text-xs text-muted-foreground">Materias</p>
+              <div className="stat-info">
+                <p className="stat-value">{materias.length}</p>
+                <p className="stat-label">Materias</p>
               </div>
-            </CardContent>
+            </div>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <ListChecks className="h-5 w-5 text-success" />
+            <div className="stat-card-content">
+              <div className="stat-icon success">
+                <ListChecks />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{preguntas.filter(p => p.activa).length}</p>
-                <p className="text-xs text-muted-foreground">Preguntas Activas</p>
+              <div className="stat-info">
+                <p className="stat-value">{preguntas.filter(p => p.activa).length}</p>
+                <p className="stat-label">Preguntas Activas</p>
               </div>
-            </CardContent>
+            </div>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Award className="h-5 w-5 text-warning" />
+            <div className="stat-card-content">
+              <div className="stat-icon warning">
+                <Award />
               </div>
-              <div>
-                <p className="text-2xl font-bold">100</p>
-                <p className="text-xs text-muted-foreground">Puntaje por Materia</p>
+              <div className="stat-info">
+                <p className="stat-value">100</p>
+                <p className="stat-label">Puntaje por Materia</p>
               </div>
-            </CardContent>
+            </div>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-                <Timer className="h-5 w-5 text-accent-foreground" />
+            <div className="stat-card-content">
+              <div className="stat-icon accent">
+                <Timer />
               </div>
-              <div>
-                <p className="text-2xl font-bold">500</p>
-                <p className="text-xs text-muted-foreground">Total Máximo</p>
+              <div className="stat-info">
+                <p className="stat-value">500</p>
+                <p className="stat-label">Total Máximo</p>
               </div>
-            </CardContent>
+            </div>
           </Card>
         </div>
 
-        {/* Subject Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="materias-grid">
           {materias.map((materia) => {
             const Icon = iconMap[materia.icono || 'BookOpen'] || BookOpen;
             const materiaPreguntas = getPreguntasByMateria(materia.id);
@@ -827,68 +805,68 @@ const Simulacros: React.FC = () => {
             const tiempoMinutos = Math.floor(materia.tiempo_simulacro / 60);
 
             return (
-              <Card key={materia.id} className="card-hover">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div 
-                      className="h-14 w-14 rounded-xl flex items-center justify-center shadow-md"
+              <Card key={materia.id}>
+                <CardHeader>
+                  <div className="materia-card-header">
+                    <div
+                      className="materia-icon"
                       style={{ backgroundColor: materia.color || '#3B82F6' }}
                     >
-                      <Icon className="h-7 w-7 text-white" />
+                      <Icon />
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold">{preguntasActivas}</p>
-                      <p className="text-xs text-muted-foreground">Preguntas</p>
+                    <div className="materia-stats">
+                      <p className="count">{preguntasActivas}</p>
+                      <p className="label">Preguntas</p>
                     </div>
                   </div>
-                  <CardTitle className="mt-4">{materia.nombre}</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {materia.descripcion}
-                  </CardDescription>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
-                    <Timer className="h-4 w-4" />
+                  <CardTitle>{materia.nombre}</CardTitle>
+                  <CardDescription>{materia.descripcion}</CardDescription>
+                  <div className="materia-time">
+                    <Timer />
                     <span>{tiempoMinutos} minutos</span>
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
-                  <Button 
-                    className="w-full gap-2" 
+                <CardContent>
+                  <Button
+                    className="btn-full"
                     disabled={preguntasActivas === 0}
                     onClick={() => iniciarSimulacro(materia)}
                   >
-                    <Play className="h-4 w-4" />
-                    Iniciar Simulacro
+                    <span className="btn-gap">
+                      <Play />
+                      Iniciar Simulacro
+                    </span>
                   </Button>
 
                   {canManageQuestions && (
-                    <div className="flex gap-2 pt-2 border-t border-border">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1 gap-1"
+                    <div className="materia-actions">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="btn-flex"
                         onClick={() => handleViewQuestions(materia.id)}
                       >
-                        <Settings className="h-4 w-4" />
-                        Gestionar
+                        <span className="btn-gap">
+                          <Settings />
+                          Gestionar
+                        </span>
                       </Button>
                       {isAdmin && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="gap-1"
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleOpenTimeDialog(materia)}
                         >
-                          <Timer className="h-4 w-4" />
+                          <Timer />
                         </Button>
                       )}
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="gap-1"
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleOpenCreateDialog(materia.id)}
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus />
                       </Button>
                     </div>
                   )}
@@ -898,68 +876,78 @@ const Simulacros: React.FC = () => {
           })}
         </div>
 
-        {/* Instructions */}
-        <Card className="mt-8">
+        <Card className="instructions-card">
           <CardHeader>
             <CardTitle>Instrucciones</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <ArrowRight className="h-4 w-4 mt-1 text-primary" />
+            <ul className="instructions-list">
+              <li>
+                <ArrowRight />
                 Selecciona una materia y haz clic en "Iniciar Simulacro".
               </li>
-              <li className="flex items-start gap-2">
-                <ArrowRight className="h-4 w-4 mt-1 text-primary" />
+              <li>
+                <ArrowRight />
                 El tiempo es GENERAL por materia (configurable por el administrador).
               </li>
-              <li className="flex items-start gap-2">
-                <ArrowRight className="h-4 w-4 mt-1 text-primary" />
+              <li>
+                <ArrowRight />
                 Cada materia se califica de 0 a 100 puntos.
               </li>
-              <li className="flex items-start gap-2">
-                <ArrowRight className="h-4 w-4 mt-1 text-primary" />
+              <li>
+                <ArrowRight />
                 El puntaje total máximo es 500 (5 materias × 100 puntos).
               </li>
             </ul>
           </CardContent>
         </Card>
 
-        {/* Diálogo de preguntas por materia */}
+        {/* Dialog: Ver preguntas */}
         <Dialog open={showQuestionsDialog} onOpenChange={setShowQuestionsDialog}>
-          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Preguntas de {selectedMateria?.nombre}</DialogTitle>
               <DialogDescription>
                 {selectedMateriaPreguntas.length} preguntas en total
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-3">
+            <div className="preguntas-dialog-list">
               {selectedMateriaPreguntas.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No hay preguntas registradas.</p>
+                <p className="empty-state">No hay preguntas registradas.</p>
               ) : (
                 selectedMateriaPreguntas.map((pregunta, index) => (
-                  <div key={pregunta.id} className="p-4 border rounded-lg">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                  <div key={pregunta.id} className="pregunta-dialog-item">
+                    <div className="pregunta-dialog-item-header">
+                      <div className="pregunta-dialog-item-content">
+                        <div className="pregunta-dialog-meta">
                           <Badge variant={pregunta.activa ? "default" : "secondary"}>
                             {pregunta.activa ? 'Activa' : 'Inactiva'}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">#{index + 1}</span>
-                          {pregunta.imagen_url && (
-                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                          )}
+                          <span>#{index + 1}</span>
+                          {pregunta.imagen_url && <ImageIcon />}
                         </div>
-                        <p className="font-medium text-sm line-clamp-2">{pregunta.pregunta}</p>
-                        <p className="text-xs text-success mt-1">Respuesta: {pregunta.respuesta_correcta}</p>
+                        <p className="pregunta-dialog-text">{pregunta.pregunta}</p>
+                        <p className="pregunta-dialog-respuesta">Respuesta: {pregunta.respuesta_correcta}</p>
                       </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setShowQuestionsDialog(false); handleOpenEditDialog(pregunta); }}>
-                          <Pencil className="h-4 w-4" />
+                      <div className="pregunta-dialog-actions">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="btn-icon"
+                          onClick={() => {
+                            setShowQuestionsDialog(false);
+                            handleOpenEditDialog(pregunta);
+                          }}
+                        >
+                          <Pencil />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" onClick={() => handleConfirmDelete(pregunta.id)}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="btn-icon btn-destructive-ghost"
+                          onClick={() => handleConfirmDelete(pregunta.id)}
+                        >
+                          <Trash2 />
                         </Button>
                       </div>
                     </div>
@@ -970,17 +958,17 @@ const Simulacros: React.FC = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Diálogo para configurar tiempo */}
+        {/* Dialog: Configurar tiempo */}
         <Dialog open={showTimeDialog} onOpenChange={setShowTimeDialog}>
-          <DialogContent className="sm:max-w-[400px]">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Configurar Tiempo</DialogTitle>
               <DialogDescription>
                 Tiempo general para {editingMateriaTime?.nombre}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
+            <div className="dialog-form">
+              <div className="form-group">
                 <Label>Tiempo (minutos)</Label>
                 <Input
                   type="number"
@@ -994,27 +982,27 @@ const Simulacros: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowTimeDialog(false)}>Cancelar</Button>
               <Button onClick={handleSaveTime} disabled={saving}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {saving && <Loader2 className="icon-spin" />}
                 Guardar
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Diálogo para Crear/Editar Pregunta */}
+        {/* Dialog: Crear/Editar Pregunta */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>{isEditing ? 'Editar Pregunta' : 'Nueva Pregunta'}</DialogTitle>
               <DialogDescription>
                 {isEditing ? 'Modifica los datos de la pregunta.' : 'Completa los datos de la pregunta.'}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
+            <div className="dialog-form">
+              <div className="form-group">
                 <Label>Materia *</Label>
                 <Select value={formData.materia_id} onValueChange={val => handleInputChange('materia_id', val)}>
-                  <SelectTrigger className={formErrors.materia_id ? 'border-destructive' : ''}>
+                  <SelectTrigger className={formErrors.materia_id ? 'form-error' : ''}>
                     <SelectValue placeholder="Selecciona materia" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1025,13 +1013,13 @@ const Simulacros: React.FC = () => {
                 </Select>
               </div>
 
-              <div className="grid gap-2">
+              <div className="form-group">
                 <Label>Pregunta *</Label>
                 <Textarea
                   value={formData.pregunta}
                   onChange={e => handleInputChange('pregunta', e.target.value)}
                   rows={3}
-                  className={formErrors.pregunta ? 'border-destructive' : ''}
+                  className={formErrors.pregunta ? 'form-error' : ''}
                 />
               </div>
 
@@ -1042,26 +1030,42 @@ const Simulacros: React.FC = () => {
                 label="Imagen (opcional)"
               />
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
+              <div className="form-grid-2">
+                <div className="form-group">
                   <Label>Opción A *</Label>
-                  <Input value={formData.opcion_a} onChange={e => handleInputChange('opcion_a', e.target.value)} className={formErrors.opcion_a ? 'border-destructive' : ''} />
+                  <Input
+                    value={formData.opcion_a}
+                    onChange={e => handleInputChange('opcion_a', e.target.value)}
+                    className={formErrors.opcion_a ? 'form-error' : ''}
+                  />
                 </div>
-                <div className="grid gap-2">
+                <div className="form-group">
                   <Label>Opción B *</Label>
-                  <Input value={formData.opcion_b} onChange={e => handleInputChange('opcion_b', e.target.value)} className={formErrors.opcion_b ? 'border-destructive' : ''} />
+                  <Input
+                    value={formData.opcion_b}
+                    onChange={e => handleInputChange('opcion_b', e.target.value)}
+                    className={formErrors.opcion_b ? 'form-error' : ''}
+                  />
                 </div>
-                <div className="grid gap-2">
+                <div className="form-group">
                   <Label>Opción C *</Label>
-                  <Input value={formData.opcion_c} onChange={e => handleInputChange('opcion_c', e.target.value)} className={formErrors.opcion_c ? 'border-destructive' : ''} />
+                  <Input
+                    value={formData.opcion_c}
+                    onChange={e => handleInputChange('opcion_c', e.target.value)}
+                    className={formErrors.opcion_c ? 'form-error' : ''}
+                  />
                 </div>
-                <div className="grid gap-2">
+                <div className="form-group">
                   <Label>Opción D *</Label>
-                  <Input value={formData.opcion_d} onChange={e => handleInputChange('opcion_d', e.target.value)} className={formErrors.opcion_d ? 'border-destructive' : ''} />
+                  <Input
+                    value={formData.opcion_d}
+                    onChange={e => handleInputChange('opcion_d', e.target.value)}
+                    className={formErrors.opcion_d ? 'form-error' : ''}
+                  />
                 </div>
               </div>
 
-              <div className="grid gap-2">
+              <div className="form-group">
                 <Label>Respuesta Correcta *</Label>
                 <Select value={formData.respuesta_correcta} onValueChange={val => handleInputChange('respuesta_correcta', val)}>
                   <SelectTrigger>
@@ -1076,7 +1080,7 @@ const Simulacros: React.FC = () => {
                 </Select>
               </div>
 
-              <div className="grid gap-2">
+              <div className="form-group">
                 <Label>Explicación (opcional)</Label>
                 <Textarea
                   value={formData.explicacion}
@@ -1085,7 +1089,7 @@ const Simulacros: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="form-row">
                 <Label>Pregunta activa</Label>
                 <Switch checked={formData.activa} onCheckedChange={val => handleInputChange('activa', val)} />
               </div>
@@ -1093,14 +1097,14 @@ const Simulacros: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" onClick={handleCloseDialog}>Cancelar</Button>
               <Button onClick={isEditing ? handleUpdatePregunta : handleCreatePregunta} disabled={saving}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {saving && <Loader2 className="icon-spin" />}
                 {isEditing ? 'Guardar' : 'Crear'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Confirmar eliminación */}
+        {/* AlertDialog: Confirmar eliminación */}
         <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -1109,7 +1113,7 @@ const Simulacros: React.FC = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeletePregunta} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+              <AlertDialogAction onClick={handleDeletePregunta}>Eliminar</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
