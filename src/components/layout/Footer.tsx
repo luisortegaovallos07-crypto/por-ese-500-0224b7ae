@@ -2,47 +2,48 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import logoMain from '@/assets/logo-main.jpeg';
 import { Mail, Phone, MapPin } from 'lucide-react';
+import './Footer.css';
 
 export const Footer: React.FC = () => {
   const currentYear = 2026;
 
   return (
-    <footer className="bg-card border-t border-border">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <footer className="footer">
+      <div className="footer-container">
+        <div className="footer-grid">
           {/* Logo and Description */}
-          <div className="flex flex-col gap-4">
+          <div className="footer-brand">
             <img
               src={logoMain}
               alt="POR ESE 500"
-              className="h-16 w-auto object-contain self-start"
+              className="footer-logo"
             />
-            <p className="text-sm text-muted-foreground max-w-xs">
+            <p className="footer-tagline">
               "Donde cada día de disciplina acerca los sueños al 500"
             </p>
           </div>
 
           {/* Quick Links */}
-          <div>
-            <h4 className="font-semibold mb-4 text-foreground">Enlaces Rápidos</h4>
-            <ul className="space-y-2">
+          <div className="footer-links">
+            <h4 className="footer-title">Enlaces Rápidos</h4>
+            <ul className="footer-list">
               <li>
-                <Link to="/simulacros" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/simulacros" className="footer-link">
                   Simulacros
                 </Link>
               </li>
               <li>
-                <Link to="/material" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/material" className="footer-link">
                   Material de Estudio
                 </Link>
               </li>
               <li>
-                <Link to="/calendario" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/calendario" className="footer-link">
                   Calendario Académico
                 </Link>
               </li>
               <li>
-                <Link to="/contacto" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/contacto" className="footer-link">
                   Contacto
                 </Link>
               </li>
@@ -50,19 +51,19 @@ export const Footer: React.FC = () => {
           </div>
 
           {/* Contact Info */}
-          <div>
-            <h4 className="font-semibold mb-4 text-foreground">Contacto</h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-primary" />
+          <div className="footer-contact">
+            <h4 className="footer-title">Contacto</h4>
+            <ul className="footer-contact-list">
+              <li className="footer-contact-item">
+                <Mail className="footer-contact-icon" />
                 porese500@porese500.com
               </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-primary" />
+              <li className="footer-contact-item">
+                <Phone className="footer-contact-icon" />
                 3182456525
               </li>
-              <li className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
+              <li className="footer-contact-item">
+                <MapPin className="footer-contact-icon" />
                 Aguachica, Cesar, Colombia
               </li>
             </ul>
@@ -70,18 +71,18 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-8 pt-6 border-t border-border flex flex-col items-center gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="footer-bottom">
+          <p className="footer-copyright">
             © {currentYear} POR ESE 500. Todos los derechos reservados.
           </p>
-          <p className="text-xs text-muted-foreground">
-            Desarrollado por <span className="text-primary font-medium">Ing. de Sistemas Daniel Ortega</span>
+          <p className="footer-credits">
+            Desarrollado por <span className="footer-author">Ing. de Sistemas Daniel Ortega</span>
           </p>
-          <div className="flex items-center gap-4">
-            <Link to="#" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+          <div className="footer-legal">
+            <Link to="#" className="footer-legal-link">
               Política de Privacidad
             </Link>
-            <Link to="#" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+            <Link to="#" className="footer-legal-link">
               Términos de Uso
             </Link>
           </div>

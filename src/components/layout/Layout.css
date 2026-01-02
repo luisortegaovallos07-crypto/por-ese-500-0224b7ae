@@ -1,0 +1,11 @@
+/* Layout Styles */
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background);
+}
+
+.layout-main {
+  flex: 1;
+}

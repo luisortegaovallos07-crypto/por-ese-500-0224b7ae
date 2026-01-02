@@ -11,15 +11,12 @@ import {
   Calendar,
   Newspaper,
   Users,
-  Award,
   Clock,
   ArrowRight,
   BarChart3,
   Target,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import './Dashboard.css';
 
 interface Noticia {
   id: string;
@@ -57,7 +54,6 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch noticias
       const { data: noticiasData } = await supabase
         .from('noticias')
         .select('*')
@@ -66,7 +62,6 @@ const Dashboard: React.FC = () => {
       
       if (noticiasData) setNoticias(noticiasData);
 
-      // Fetch eventos
       const today = new Date().toISOString().split('T')[0];
       const { data: eventosData } = await supabase
         .from('eventos')
@@ -77,14 +72,12 @@ const Dashboard: React.FC = () => {
       
       if (eventosData) setEventos(eventosData);
 
-      // Fetch materias
       const { data: materiasData } = await supabase
         .from('materias')
         .select('*');
       
       if (materiasData) setMaterias(materiasData);
 
-      // Only fetch stats for admin/profesor
       if (isAdmin || isProfesor) {
         const { count: estudiantesCount } = await supabase
           .from('user_roles')
@@ -106,306 +99,276 @@ const Dashboard: React.FC = () => {
     fetchData();
   }, [isAdmin, isProfesor]);
 
-  const getEventTypeColor = (tipo: string) => {
+  const getEventTypeClass = (tipo: string) => {
     switch (tipo) {
-      case 'simulacro': return 'bg-primary/10 text-primary';
-      case 'clase': return 'bg-success/10 text-success';
-      case 'tarea': return 'bg-warning/10 text-warning';
-      case 'reunion': return 'bg-accent text-accent-foreground';
-      default: return 'bg-muted text-muted-foreground';
+      case 'simulacro': return 'event-type-simulacro';
+      case 'clase': return 'event-type-clase';
+      case 'tarea': return 'event-type-tarea';
+      case 'reunion': return 'event-type-reunion';
+      default: return 'event-type-default';
     }
   };
 
   return (
     <Layout>
-      <div className="page-container">
+      <div className="dashboard-container">
         {/* Welcome Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
+        <div className="dashboard-header">
+          <h1 className="dashboard-title">
             ¡Hola, {profile?.nombre}! 👋
           </h1>
-          <p className="text-muted-foreground">
+          <p className="dashboard-subtitle">
             Bienvenido a tu panel de control. Aquí puedes ver tu progreso y actividades recientes.
           </p>
         </div>
 
         {/* Quick Stats - Student View */}
         <RoleGate allowedRoles={['estudiante']}>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="card-hover">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Target className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">0</p>
-                    <p className="text-xs text-muted-foreground">Promedio</p>
-                  </div>
+          <div className="stats-grid">
+            <div className="stat-card-item">
+              <div className="stat-card-content">
+                <div className="stat-icon-box stat-icon-primary">
+                  <Target className="stat-icon" />
                 </div>
-              </CardContent>
-            </Card>
-            <Card className="card-hover">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">0</p>
-                    <p className="text-xs text-muted-foreground">Simulacros</p>
-                  </div>
+                <div>
+                  <p className="stat-number">0</p>
+                  <p className="stat-text">Promedio</p>
                 </div>
-              </CardContent>
-            </Card>
-            <Card className="card-hover">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-                    <BookOpen className="h-5 w-5 text-accent-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{materias.length}</p>
-                    <p className="text-xs text-muted-foreground">Materias</p>
-                  </div>
+              </div>
+            </div>
+            <div className="stat-card-item">
+              <div className="stat-card-content">
+                <div className="stat-icon-box stat-icon-success">
+                  <FileText className="stat-icon" />
                 </div>
-              </CardContent>
-            </Card>
-            <Card className="card-hover">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-warning" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{eventos.length}</p>
-                    <p className="text-xs text-muted-foreground">Próximos</p>
-                  </div>
+                <div>
+                  <p className="stat-number">0</p>
+                  <p className="stat-text">Simulacros</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+            <div className="stat-card-item">
+              <div className="stat-card-content">
+                <div className="stat-icon-box stat-icon-accent">
+                  <BookOpen className="stat-icon" />
+                </div>
+                <div>
+                  <p className="stat-number">{materias.length}</p>
+                  <p className="stat-text">Materias</p>
+                </div>
+              </div>
+            </div>
+            <div className="stat-card-item">
+              <div className="stat-card-content">
+                <div className="stat-icon-box stat-icon-warning">
+                  <Calendar className="stat-icon" />
+                </div>
+                <div>
+                  <p className="stat-number">{eventos.length}</p>
+                  <p className="stat-text">Próximos</p>
+                </div>
+              </div>
+            </div>
           </div>
         </RoleGate>
 
         {/* Admin/Professor Stats */}
         <RoleGate allowedRoles={['admin', 'profesor']}>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="card-hover">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{stats.totalEstudiantes}</p>
-                    <p className="text-xs text-muted-foreground">Estudiantes</p>
-                  </div>
+          <div className="stats-grid">
+            <div className="stat-card-item">
+              <div className="stat-card-content">
+                <div className="stat-icon-box stat-icon-primary">
+                  <Users className="stat-icon" />
                 </div>
-              </CardContent>
-            </Card>
-            <Card className="card-hover">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                    <BarChart3 className="h-5 w-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">0</p>
-                    <p className="text-xs text-muted-foreground">Promedio General</p>
-                  </div>
+                <div>
+                  <p className="stat-number">{stats.totalEstudiantes}</p>
+                  <p className="stat-text">Estudiantes</p>
                 </div>
-              </CardContent>
-            </Card>
-            <Card className="card-hover">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-accent-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{stats.totalSimulacros}</p>
-                    <p className="text-xs text-muted-foreground">Simulacros</p>
-                  </div>
+              </div>
+            </div>
+            <div className="stat-card-item">
+              <div className="stat-card-content">
+                <div className="stat-icon-box stat-icon-success">
+                  <BarChart3 className="stat-icon" />
                 </div>
-              </CardContent>
-            </Card>
-            <Card className="card-hover">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-warning" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{eventos.length}</p>
-                    <p className="text-xs text-muted-foreground">Eventos</p>
-                  </div>
+                <div>
+                  <p className="stat-number">0</p>
+                  <p className="stat-text">Promedio General</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+            <div className="stat-card-item">
+              <div className="stat-card-content">
+                <div className="stat-icon-box stat-icon-accent">
+                  <FileText className="stat-icon" />
+                </div>
+                <div>
+                  <p className="stat-number">{stats.totalSimulacros}</p>
+                  <p className="stat-text">Simulacros</p>
+                </div>
+              </div>
+            </div>
+            <div className="stat-card-item">
+              <div className="stat-card-content">
+                <div className="stat-icon-box stat-icon-warning">
+                  <Calendar className="stat-icon" />
+                </div>
+                <div>
+                  <p className="stat-number">{eventos.length}</p>
+                  <p className="stat-text">Eventos</p>
+                </div>
+              </div>
+            </div>
           </div>
         </RoleGate>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="dashboard-grid">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="dashboard-main">
             {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <FileText className="card-title-icon" />
                   Acciones Rápidas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Link
-                    to="/simulacros"
-                    className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-colors group"
-                  >
-                    <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center">
-                      <FileText className="h-6 w-6 text-primary-foreground" />
+                </h2>
+              </div>
+              <div className="card-content">
+                <div className="quick-actions-grid">
+                  <Link to="/simulacros" className="quick-action quick-action-primary">
+                    <div className="quick-action-icon-box quick-action-icon-primary">
+                      <FileText className="quick-action-icon" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">Iniciar Simulacro</h3>
-                      <p className="text-sm text-muted-foreground">Practica ahora</p>
+                    <div className="quick-action-text">
+                      <h3 className="quick-action-title">Iniciar Simulacro</h3>
+                      <p className="quick-action-subtitle">Practica ahora</p>
                     </div>
-                    <ArrowRight className="h-5 w-5 text-primary group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="quick-action-arrow" />
                   </Link>
 
-                  <Link
-                    to="/progreso"
-                    className="flex items-center gap-4 p-4 rounded-xl bg-success/5 hover:bg-success/10 border border-success/20 transition-colors group"
-                  >
-                    <div className="h-12 w-12 rounded-lg bg-success flex items-center justify-center">
-                      <TrendingUp className="h-6 w-6 text-white" />
+                  <Link to="/progreso" className="quick-action quick-action-success">
+                    <div className="quick-action-icon-box quick-action-icon-success">
+                      <TrendingUp className="quick-action-icon" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">Ver Progreso</h3>
-                      <p className="text-sm text-muted-foreground">Tu evolución</p>
+                    <div className="quick-action-text">
+                      <h3 className="quick-action-title">Ver Progreso</h3>
+                      <p className="quick-action-subtitle">Tu evolución</p>
                     </div>
-                    <ArrowRight className="h-5 w-5 text-success group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="quick-action-arrow quick-action-arrow-success" />
                   </Link>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Recent News */}
-            <Card>
-              <CardHeader className="flex-row items-center justify-between space-y-0">
-                <CardTitle className="flex items-center gap-2">
-                  <Newspaper className="h-5 w-5 text-primary" />
+            <div className="card">
+              <div className="card-header card-header-row">
+                <h2 className="card-title">
+                  <Newspaper className="card-title-icon" />
                   Noticias Recientes
-                </CardTitle>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/noticias" className="gap-1">
-                    Ver todas
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h2>
+                <Link to="/noticias" className="btn btn-ghost btn-sm">
+                  Ver todas
+                  <ArrowRight className="btn-icon-sm" />
+                </Link>
+              </div>
+              <div className="card-content">
                 {noticias.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No hay noticias disponibles</p>
+                  <p className="empty-message">No hay noticias disponibles</p>
                 ) : (
-                  noticias.map(noticia => (
-                    <div
-                      key={noticia.id}
-                      className="block p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <h3 className="font-medium mb-1 line-clamp-1">{noticia.titulo}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{noticia.contenido}</p>
-                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {new Date(noticia.created_at).toLocaleDateString('es-ES', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                        })}
+                  <div className="news-list">
+                    {noticias.map(noticia => (
+                      <div key={noticia.id} className="news-item">
+                        <h3 className="news-title">{noticia.titulo}</h3>
+                        <p className="news-excerpt">{noticia.contenido}</p>
+                        <div className="news-meta">
+                          <Clock className="news-meta-icon" />
+                          {new Date(noticia.created_at).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="dashboard-sidebar">
             {/* Upcoming Events */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <Calendar className="card-title-icon" />
                   Próximos Eventos
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+                </h2>
+              </div>
+              <div className="card-content">
                 {eventos.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No hay eventos programados</p>
+                  <p className="empty-message">No hay eventos programados</p>
                 ) : (
-                  eventos.map(evento => (
-                    <div
-                      key={evento.id}
-                      className="p-3 rounded-lg border border-border space-y-2"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-medium text-sm line-clamp-1">{evento.titulo}</h4>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${getEventTypeColor(evento.tipo)}`}>
-                          {evento.tipo}
-                        </span>
+                  <div className="events-list">
+                    {eventos.map(evento => (
+                      <div key={evento.id} className="event-item">
+                        <div className="event-header">
+                          <h4 className="event-title">{evento.titulo}</h4>
+                          <span className={`event-type ${getEventTypeClass(evento.tipo)}`}>
+                            {evento.tipo}
+                          </span>
+                        </div>
+                        <div className="event-meta">
+                          <Calendar className="event-meta-icon" />
+                          {new Date(evento.fecha).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                          {evento.hora && (
+                            <>
+                              <Clock className="event-meta-icon event-meta-icon-ml" />
+                              {evento.hora}
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(evento.fecha).toLocaleDateString('es-ES', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
-                        {evento.hora && (
-                          <>
-                            <Clock className="h-3 w-3 ml-2" />
-                            {evento.hora}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
-                <Button variant="outline" className="w-full" asChild>
-                  <Link to="/calendario">Ver Calendario</Link>
-                </Button>
-              </CardContent>
-            </Card>
+                <Link to="/calendario" className="btn btn-outline btn-full">
+                  Ver Calendario
+                </Link>
+              </div>
+            </div>
 
             {/* Subjects Overview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary" />
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <BookOpen className="card-title-icon" />
                   Materias
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+                </h2>
+              </div>
+              <div className="card-content">
+                <div className="subjects-list">
                   {materias.map(materia => (
-                    <Link
-                      key={materia.id}
-                      to="/simulacros"
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
-                    >
+                    <Link key={materia.id} to="/simulacros" className="subject-item">
                       <div 
-                        className="h-8 w-8 rounded-lg flex items-center justify-center"
+                        className="subject-icon"
                         style={{ backgroundColor: materia.color || '#3B82F6' }}
                       >
-                        <span className="text-white text-xs font-bold">
+                        <span className="subject-initial">
                           {materia.nombre.charAt(0)}
                         </span>
                       </div>
-                      <span className="text-sm font-medium">{materia.nombre}</span>
+                      <span className="subject-name">{materia.nombre}</span>
                     </Link>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
