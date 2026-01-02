@@ -5,7 +5,7 @@
   min-height: 100vh;
   align-items: center;
   justify-content: center;
-  background-color: hsl(var(--muted));
+  background-color: var(--muted);
 }
 
 .not-found-content {
@@ -20,15 +20,15 @@
 
 .not-found-text {
   font-size: 1.25rem;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
   margin-bottom: 1rem;
 }
 
 .not-found-link {
-  color: hsl(var(--primary));
+  color: var(--primary);
   text-decoration: underline;
 }
 
 .not-found-link:hover {
-  color: hsl(var(--primary) / 0.9);
+  opacity: 0.9;
 }

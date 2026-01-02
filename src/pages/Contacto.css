@@ -8,6 +8,12 @@
   margin-right: auto;
 }
 
+.contacto-subtitle {
+  color: var(--muted-foreground);
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
 .contacto-grid {
   display: grid;
   gap: 2rem;
@@ -21,17 +27,67 @@
   }
 }
 
+/* Card Header/Content */
+.card-header {
+  padding: 1.5rem 1.5rem 0;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.card-content {
+  padding: 1.5rem;
+}
+
 /* Form */
 .contacto-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.textarea {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px hsla(217, 91%, 40%, 0.2);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-icon {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* Info Cards */
@@ -49,26 +105,35 @@
 }
 
 .contacto-info-icon {
-  height: 3rem;
-  width: 3rem;
-  border-radius: 0.5rem;
-  background-color: hsl(var(--primary) / 0.1);
+  height: 3.5rem;
+  width: 3.5rem;
+  border-radius: 0.75rem;
+  background-color: hsla(217, 91%, 40%, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .contacto-info-icon svg {
-  height: 1.5rem;
-  width: 1.5rem;
-  color: hsl(var(--primary));
+  height: 1.75rem;
+  width: 1.75rem;
+  color: var(--primary);
 }
 
-.contacto-info-content p:first-child {
-  font-weight: 500;
+.contacto-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.contacto-info-content p:last-child {
-  font-size: 0.875rem;
-  color: hsl(var(--muted-foreground));
+.contacto-info-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--foreground);
+}
+
+.contacto-info-text {
+  font-size: 0.95rem;
+  color: var(--muted-foreground);
 }
