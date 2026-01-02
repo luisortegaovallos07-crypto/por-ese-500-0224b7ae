@@ -1,0 +1,74 @@
+/* Contacto Page Styles */
+
+.contacto-header {
+  margin-bottom: 2rem;
+  text-align: center;
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.contacto-grid {
+  display: grid;
+  gap: 2rem;
+  max-width: 56rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .contacto-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Form */
+.contacto-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Info Cards */
+.contacto-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contacto-info-card {
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.contacto-info-icon {
+  height: 3rem;
+  width: 3rem;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--primary) / 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contacto-info-icon svg {
+  height: 1.5rem;
+  width: 1.5rem;
+  color: hsl(var(--primary));
+}
+
+.contacto-info-content p:first-child {
+  font-weight: 500;
+}
+
+.contacto-info-content p:last-child {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
