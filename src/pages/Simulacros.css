@@ -595,6 +595,9 @@
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 0;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
 }
 
 .form-group {
@@ -613,6 +616,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0.5rem 0;
 }
 
 .form-error {
