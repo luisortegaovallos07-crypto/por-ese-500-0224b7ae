@@ -821,6 +821,96 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0.25rem -0.25rem;
 }
 
+/* Select Component */
+.select-trigger {
+  display: flex;
+  height: 2.5rem;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid var(--input);
+  background-color: var(--background);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.select-trigger:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px hsla(217, 91%, 40%, 0.2);
+}
+
+.select-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.select-trigger svg {
+  height: 1rem;
+  width: 1rem;
+  opacity: 0.5;
+}
+
+.select-content {
+  position: relative;
+  z-index: 100;
+  max-height: 24rem;
+  min-width: 8rem;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  padding: 0.25rem;
+  color: var(--foreground);
+  box-shadow: var(--shadow-lg);
+}
+
+.select-item {
+  position: relative;
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  border-radius: calc(var(--radius) - 4px);
+  padding: 0.5rem 0.5rem 0.5rem 2rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: background-color 0.15s;
+  background-color: transparent;
+  border: none;
+  color: inherit;
+}
+
+.select-item:hover,
+.select-item:focus {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.select-item[data-disabled] {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.select-item-indicator {
+  position: absolute;
+  left: 0.5rem;
+  display: flex;
+  height: 0.875rem;
+  width: 0.875rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.select-item-indicator svg {
+  height: 1rem;
+  width: 1rem;
+}
+
 /* Page Container */
 .page-container {
   max-width: 1400px;
