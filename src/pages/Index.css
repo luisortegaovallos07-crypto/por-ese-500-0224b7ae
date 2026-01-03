@@ -171,6 +171,126 @@
   color: var(--muted-foreground);
 }
 
+/* About Platform Section */
+.about-section {
+  padding: 5rem 0;
+  background: linear-gradient(180deg, var(--background) 0%, hsla(217, 91%, 40%, 0.03) 100%);
+}
+
+.about-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .about-grid {
+    grid-template-columns: 1.2fr 0.8fr;
+  }
+}
+
+.about-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.about-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+@media (min-width: 768px) {
+  .about-title {
+    font-size: 2.25rem;
+  }
+}
+
+.about-description {
+  font-size: 1.1rem;
+  color: var(--muted-foreground);
+  line-height: 1.8;
+}
+
+.about-description strong {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.about-features {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.about-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.about-feature:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateX(4px);
+}
+
+.about-feature-icon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.about-feature h4 {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--foreground);
+}
+
+.about-feature p {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.about-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.about-logo {
+  max-width: 280px;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.3s ease;
+}
+
+.about-logo:hover {
+  transform: scale(1.02);
+}
+
+@media (min-width: 768px) {
+  .about-logo {
+    max-width: 320px;
+  }
+}
+
 /* Stats Section */
 .stats-section {
   padding: 3rem 0;
