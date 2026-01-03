@@ -327,34 +327,33 @@
 .stats-grid {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: space-between;
   align-items: stretch;
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  gap: 1.5rem;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
   .stats-grid {
-    gap: 2.5rem;
-  }
-}
-
-.stat-card {
-  width: 100%;
-  max-width: 220px;
-  flex: 0 0 auto;
-}
-
-@media (min-width: 640px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
   }
 }
 
 @media (min-width: 1024px) {
   .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+  }
+}
+
+.stat-card {
+  width: 100%;
+  flex: 1 1 calc(50% - 1rem);
+}
+
+@media (min-width: 1024px) {
+  .stat-card {
+    flex: 1 1 0;
+    max-width: none;
   }
 }
 
