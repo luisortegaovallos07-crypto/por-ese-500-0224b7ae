@@ -592,6 +592,140 @@
   color: var(--muted-foreground);
 }
 
+/* About Us Section */
+.about-us-section {
+  padding: 5rem 0;
+  background: linear-gradient(180deg, var(--background) 0%, hsla(217, 91%, 40%, 0.03) 50%, var(--background) 100%);
+}
+
+.about-us-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.about-us-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.about-us-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--foreground);
+}
+
+@media (min-width: 768px) {
+  .about-us-title {
+    font-size: 2.5rem;
+  }
+}
+
+.about-us-subtitle {
+  font-size: 1.125rem;
+  color: var(--muted-foreground);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.about-us-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+@media (min-width: 640px) {
+  .about-us-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .about-us-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.about-us-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 8px);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.about-us-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  border-color: var(--primary);
+}
+
+.about-us-icon-wrapper {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, hsla(217, 91%, 40%, 0.15) 0%, hsla(200, 80%, 50%, 0.1) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.about-us-card:hover .about-us-icon-wrapper {
+  background: linear-gradient(135deg, var(--primary) 0%, hsl(200, 80%, 50%) 100%);
+}
+
+.about-us-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--primary);
+  transition: color 0.3s ease;
+}
+
+.about-us-card:hover .about-us-icon {
+  color: var(--primary-foreground);
+}
+
+.about-us-card h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--foreground);
+}
+
+.about-us-card p {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+.about-us-quote {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.about-us-quote blockquote {
+  font-size: 1.25rem;
+  font-style: italic;
+  color: var(--muted-foreground);
+  padding: 2rem;
+  background: var(--card);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--primary);
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .about-us-quote blockquote {
+    font-size: 1.5rem;
+  }
+}
+
 /* CTA Section */
 .cta-section {
   padding: 5rem 0;

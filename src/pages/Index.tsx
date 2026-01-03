@@ -18,6 +18,10 @@ import {
   Target,
   Lightbulb,
   Brain,
+  Heart,
+  Shield,
+  Zap,
+  Trophy,
 } from 'lucide-react';
 import './Index.css';
 
@@ -236,6 +240,58 @@ const Index: React.FC = () => {
                 className="about-logo"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* About Us Section */}
+      <section className="about-us-section">
+        <div className="about-us-container">
+          <div className="about-us-header animate-fade-in">
+            <h2 className="about-us-title">Sobre Nosotros</h2>
+            <p className="about-us-subtitle">
+              Somos un equipo comprometido con tu éxito académico
+            </p>
+          </div>
+          
+          <div className="about-us-grid">
+            <div className="about-us-card animate-fade-in stagger-1">
+              <div className="about-us-icon-wrapper">
+                <Heart className="about-us-icon" />
+              </div>
+              <h3>Pasión por la Educación</h3>
+              <p>Amamos lo que hacemos y nos dedicamos a transformar vidas a través del conocimiento y la preparación académica.</p>
+            </div>
+            
+            <div className="about-us-card animate-fade-in stagger-2">
+              <div className="about-us-icon-wrapper">
+                <Shield className="about-us-icon" />
+              </div>
+              <h3>Compromiso Total</h3>
+              <p>Tu éxito es nuestra prioridad. Estamos contigo en cada paso de tu preparación hasta alcanzar tu meta.</p>
+            </div>
+            
+            <div className="about-us-card animate-fade-in stagger-3">
+              <div className="about-us-icon-wrapper">
+                <Zap className="about-us-icon" />
+              </div>
+              <h3>Innovación Constante</h3>
+              <p>Actualizamos continuamente nuestros contenidos y metodologías para ofrecerte las mejores herramientas.</p>
+            </div>
+            
+            <div className="about-us-card animate-fade-in stagger-4">
+              <div className="about-us-icon-wrapper">
+                <Trophy className="about-us-icon" />
+              </div>
+              <h3>Resultados Comprobados</h3>
+              <p>Miles de estudiantes han logrado sus metas con nuestra plataforma. Tu éxito será el próximo.</p>
+            </div>
+          </div>
+          
+          <div className="about-us-quote animate-fade-in">
+            <blockquote>
+              "Creemos que cada estudiante tiene el potencial de alcanzar la excelencia. Nuestra misión es desbloquear ese potencial."
+            </blockquote>
           </div>
         </div>
       </section>
