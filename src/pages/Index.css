@@ -325,29 +325,25 @@
 }
 
 .stats-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  max-width: 1000px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 2rem;
+  max-width: 1200px;
   margin: 0 auto;
-  justify-items: center;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
+    gap: 2.5rem;
   }
 }
 
 .stat-card {
   width: 100%;
-  max-width: 240px;
+  max-width: 220px;
+  flex: 0 0 auto;
 }
 
 @media (min-width: 640px) {
