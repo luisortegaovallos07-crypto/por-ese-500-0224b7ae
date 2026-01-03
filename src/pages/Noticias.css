@@ -307,26 +307,56 @@
 /* ============================================
    Professional Button Enhancements
    ============================================ */
-.noticias-header .btn-primary {
-  background: linear-gradient(135deg, hsl(217, 91%, 50%) 0%, hsl(200, 80%, 55%) 100%);
-  box-shadow: 0 4px 12px hsla(217, 91%, 50%, 0.3);
+.noticias-header .btn-primary,
+.noticias-header button:not([class*="outline"]):not([class*="ghost"]) {
+  background: linear-gradient(135deg, hsl(217, 91%, 50%) 0%, hsl(200, 80%, 55%) 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 12px hsla(217, 91%, 50%, 0.3) !important;
 }
 
 .noticias-header .btn-primary:hover {
-  box-shadow: 0 6px 16px hsla(217, 91%, 50%, 0.4);
+  box-shadow: 0 6px 16px hsla(217, 91%, 50%, 0.4) !important;
   transform: translateY(-1px);
 }
 
-.noticia-actions .btn {
+.noticia-actions .btn,
+.noticia-actions button {
   border-radius: 10px;
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
 }
 
-.noticia-actions .btn-ghost {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
+.noticia-actions .btn:hover,
+.noticia-actions button:hover {
+  background: hsl(var(--muted)) !important;
+  border-color: hsl(217, 91%, 60%) !important;
+  color: hsl(217, 91%, 50%) !important;
 }
 
-.noticia-actions .btn-ghost:hover {
-  background: hsl(var(--muted));
-  border-color: hsl(217, 91%, 70%);
+/* Noticia Card - Profesional */
+.noticia-card {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 1rem !important;
+}
+
+.noticia-card:hover {
+  border-color: hsla(217, 91%, 50%, 0.3) !important;
+}
+
+/* Form in Dialog */
+.noticia-form input,
+.noticia-form textarea {
+  background: hsl(var(--background)) !important;
+  border: 2px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: 0.625rem !important;
+}
+
+.noticia-form input:focus,
+.noticia-form textarea:focus {
+  border-color: hsl(217, 91%, 50%) !important;
+  box-shadow: 0 0 0 3px hsla(217, 91%, 50%, 0.15) !important;
 }
