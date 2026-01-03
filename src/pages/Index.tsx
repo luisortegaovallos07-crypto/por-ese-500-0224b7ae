@@ -163,28 +163,50 @@ const Index: React.FC = () => {
       {/* Stats Section */}
       <section className="stats-section">
         <div className="stats-container">
+          <div className="stats-header">
+            <h2 className="stats-title">Nuestros Números</h2>
+            <p className="stats-subtitle">Resultados que hablan por sí solos</p>
+          </div>
           <div className="stats-grid">
-            <div className="stat-item animate-fade-in stagger-1">
-              <div className="stat-icon-wrapper">
+            <div className="stat-card animate-fade-in stagger-1">
+              <div className="stat-icon-circle">
                 <GraduationCap className="stat-icon" />
               </div>
-              <p className="stat-value">+2.000</p>
-              <p className="stat-label">Estudiantes</p>
+              <div className="stat-content">
+                <p className="stat-value">+2.000</p>
+                <p className="stat-label">Estudiantes Activos</p>
+                <p className="stat-description">Preparándose para el éxito</p>
+              </div>
             </div>
-            <div className="stat-item animate-fade-in stagger-2">
-              <div className="stat-icon-wrapper">
+            <div className="stat-card animate-fade-in stagger-2">
+              <div className="stat-icon-circle stat-icon-success">
                 <Star className="stat-icon" />
               </div>
-              <p className="stat-value">100%</p>
-              <p className="stat-label">Satisfacción</p>
+              <div className="stat-content">
+                <p className="stat-value">100%</p>
+                <p className="stat-label">Satisfacción</p>
+                <p className="stat-description">Compromiso con la calidad</p>
+              </div>
             </div>
-            <div className="stat-item animate-fade-in stagger-3">
-              <p className="stat-value">5</p>
-              <p className="stat-label">Materias</p>
+            <div className="stat-card animate-fade-in stagger-3">
+              <div className="stat-icon-circle stat-icon-info">
+                <BookOpen className="stat-icon" />
+              </div>
+              <div className="stat-content">
+                <p className="stat-value">5</p>
+                <p className="stat-label">Materias Completas</p>
+                <p className="stat-description">Contenido actualizado</p>
+              </div>
             </div>
-            <div className="stat-item animate-fade-in stagger-4">
-              <p className="stat-value">500</p>
-              <p className="stat-label">Puntaje Meta</p>
+            <div className="stat-card animate-fade-in stagger-4">
+              <div className="stat-icon-circle stat-icon-warning">
+                <Target className="stat-icon" />
+              </div>
+              <div className="stat-content">
+                <p className="stat-value">500</p>
+                <p className="stat-label">Puntaje Meta</p>
+                <p className="stat-description">Tu objetivo, nuestra misión</p>
+              </div>
             </div>
           </div>
         </div>
