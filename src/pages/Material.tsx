@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,7 @@ import {
   Save,
   X,
   Loader2,
+  Upload,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,8 @@ const Material: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof MaterialFormData, string>>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Cargar datos
   useEffect(() => {
@@ -193,6 +196,51 @@ const Material: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      toast({ title: 'Error', description: 'Solo se permiten archivos PDF.', variant: 'destructive' });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'El archivo no puede superar los 10MB.', variant: 'destructive' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `pdfs/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('materiales')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('materiales')
+        .getPublicUrl(filePath);
+
+      handleInputChange('url', publicUrl);
+      toast({ title: 'Archivo subido', description: 'El PDF se ha subido correctamente.' });
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      toast({ title: 'Error', description: 'No se pudo subir el archivo.', variant: 'destructive' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -518,7 +566,38 @@ const Material: React.FC = () => {
               </div>
 
               <div className="grid gap-2">
-                <Label>URL *</Label>
+                <Label>{formData.tipo === 'pdf' ? 'Archivo PDF o URL *' : 'URL *'}</Label>
+                {formData.tipo === 'pdf' && (
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="pdf-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="gap-2"
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                      {uploading ? 'Subiendo...' : 'Subir PDF'}
+                    </Button>
+                    {formData.url && (
+                      <span className="text-xs text-muted-foreground flex items-center truncate max-w-[200px]">
+                        ✓ Archivo subido
+                      </span>
+                    )}
+                  </div>
+                )}
                 <Input
                   placeholder="https://..."
                   value={formData.url}
@@ -526,6 +605,9 @@ const Material: React.FC = () => {
                   className={formErrors.url ? 'border-destructive' : ''}
                 />
                 {formErrors.url && <p className="text-xs text-destructive">{formErrors.url}</p>}
+                {formData.tipo === 'pdf' && (
+                  <p className="text-xs text-muted-foreground">Sube un archivo PDF o ingresa una URL directamente.</p>
+                )}
               </div>
             </div>
 
