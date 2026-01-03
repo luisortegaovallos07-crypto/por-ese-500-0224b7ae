@@ -904,3 +904,58 @@
   height: 1rem;
   flex-shrink: 0;
 }
+
+/* ============================================
+   Button Overrides for Index Page
+   ============================================ */
+.hero-actions .btn,
+.cta-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: none;
+}
+
+.hero-actions .btn-primary,
+.cta-actions .btn-primary {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 4px 14px -3px hsl(var(--primary) / 0.4);
+}
+
+.hero-actions .btn-primary:hover,
+.cta-actions .btn-primary:hover {
+  background-color: hsl(var(--primary) / 0.9);
+  box-shadow: 0 6px 20px -3px hsl(var(--primary) / 0.5);
+  transform: translateY(-2px);
+}
+
+.hero-actions .btn-outline,
+.cta-actions .btn-outline {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 2px solid hsl(var(--border));
+  box-shadow: 0 2px 8px -2px hsl(var(--foreground) / 0.1);
+}
+
+.hero-actions .btn-outline:hover,
+.cta-actions .btn-outline:hover {
+  background-color: hsl(var(--accent));
+  border-color: hsl(var(--primary) / 0.5);
+  color: hsl(var(--primary));
+  transform: translateY(-2px);
+}
+
+.hero-actions .btn-lg,
+.cta-actions .btn-lg {
+  padding: 0.875rem 1.75rem;
+  font-size: 1rem;
+}
