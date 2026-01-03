@@ -261,7 +261,7 @@ const Admin: React.FC = () => {
 
     setSaving(true);
     try {
-      // Actualizar perfil
+      // Actualizar perfil en la base de datos
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -270,37 +270,63 @@ const Admin: React.FC = () => {
         })
         .eq('id', editingUserId);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+        throw new Error('No se pudo actualizar el perfil: ' + profileError.message);
+      }
 
-      // Actualizar rol
-      const { error: roleError } = await supabase
+      // Actualizar o insertar rol
+      const { data: existingRole } = await supabase
         .from('user_roles')
-        .update({ role: formData.role })
-        .eq('user_id', editingUserId);
+        .select('id')
+        .eq('user_id', editingUserId)
+        .maybeSingle();
 
-      if (roleError) {
-        // Si no existe el rol, insertarlo
-        await supabase
+      if (existingRole) {
+        // Actualizar rol existente
+        const { error: roleUpdateError } = await supabase
+          .from('user_roles')
+          .update({ role: formData.role })
+          .eq('user_id', editingUserId);
+
+        if (roleUpdateError) {
+          console.error('Error updating role:', roleUpdateError);
+          throw new Error('No se pudo actualizar el rol: ' + roleUpdateError.message);
+        }
+      } else {
+        // Insertar nuevo rol
+        const { error: roleInsertError } = await supabase
           .from('user_roles')
           .insert({ user_id: editingUserId, role: formData.role });
+
+        if (roleInsertError) {
+          console.error('Error inserting role:', roleInsertError);
+          throw new Error('No se pudo asignar el rol: ' + roleInsertError.message);
+        }
       }
 
       // Actualizar contraseña si se proporcionó una nueva
       if (formData.newPassword.trim()) {
-        const response = await supabase.functions.invoke('admin-update-password', {
+        console.log('Updating password for user:', editingUserId);
+        
+        const { data: passwordResponse, error: passwordError } = await supabase.functions.invoke('admin-update-password', {
           body: {
             userId: editingUserId,
-            newPassword: formData.newPassword,
+            newPassword: formData.newPassword.trim(),
           },
         });
 
-        if (response.error) {
-          throw new Error(response.error.message || 'Error al actualizar contraseña');
+        if (passwordError) {
+          console.error('Password update function error:', passwordError);
+          throw new Error('Error al actualizar contraseña: ' + passwordError.message);
         }
 
-        if (response.data?.error) {
-          throw new Error(response.data.error);
+        if (passwordResponse?.error) {
+          console.error('Password update response error:', passwordResponse.error);
+          throw new Error('Error al actualizar contraseña: ' + passwordResponse.error);
         }
+
+        console.log('Password updated successfully');
       }
 
       toast({
@@ -311,7 +337,7 @@ const Admin: React.FC = () => {
       });
 
       handleCloseDialog();
-      fetchUsers();
+      await fetchUsers();
     } catch (error: any) {
       console.error('Error updating user:', error);
       toast({
