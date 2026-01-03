@@ -163,10 +163,6 @@ const Index: React.FC = () => {
       {/* Stats Section */}
       <section className="stats-section">
         <div className="stats-container">
-          <div className="stats-header">
-            <h2 className="stats-title">Nuestros Números</h2>
-            <p className="stats-subtitle">Resultados que hablan por sí solos</p>
-          </div>
           <div className="stats-grid">
             <div className="stat-card animate-fade-in stagger-1">
               <div className="stat-icon-circle">
