@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import logoBanner from '@/assets/logo-banner.jpeg';
+import logoPorese500 from '@/assets/logo-porese500.jpeg';
 import {
   FileText,
   BookOpen,
@@ -14,6 +15,9 @@ import {
   CheckCircle,
   GraduationCap,
   Star,
+  Target,
+  Lightbulb,
+  Brain,
 } from 'lucide-react';
 import './Index.css';
 
@@ -105,6 +109,52 @@ const Index: React.FC = () => {
                   <p className="hero-floating-subtitle">100% de satisfacción</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* About Platform Section */}
+      <section className="about-section">
+        <div className="about-container">
+          <div className="about-grid">
+            <div className="about-content animate-fade-in">
+              <h2 className="about-title">Nuestra Plataforma</h2>
+              <p className="about-description">
+                <strong>Por Ese 500</strong> es una plataforma educativa diseñada para ayudarte a alcanzar 
+                tu máximo potencial académico. Combinamos tecnología avanzada con metodologías 
+                de estudio probadas para ofrecerte la mejor experiencia de preparación.
+              </p>
+              <div className="about-features">
+                <div className="about-feature">
+                  <Target className="about-feature-icon" />
+                  <div>
+                    <h4>Enfoque en Resultados</h4>
+                    <p>Cada herramienta está diseñada para maximizar tu puntaje</p>
+                  </div>
+                </div>
+                <div className="about-feature">
+                  <Lightbulb className="about-feature-icon" />
+                  <div>
+                    <h4>Aprendizaje Inteligente</h4>
+                    <p>Simulacros adaptativos que identifican tus áreas de mejora</p>
+                  </div>
+                </div>
+                <div className="about-feature">
+                  <Brain className="about-feature-icon" />
+                  <div>
+                    <h4>Metodología Comprobada</h4>
+                    <p>Basada en técnicas de estudio científicamente validadas</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="about-image-container animate-fade-in stagger-2">
+              <img 
+                src={logoPorese500} 
+                alt="Por Ese 500 Logo" 
+                className="about-logo"
+              />
             </div>
           </div>
         </div>
