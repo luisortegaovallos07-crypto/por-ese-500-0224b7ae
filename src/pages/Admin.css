@@ -421,10 +421,13 @@
 }
 
 /* ============================================
-   Dialog / Modal Improvements
+   Dialog / Modal Improvements - Professional Design
    ============================================ */
 .dialog-content-admin {
   max-width: 500px;
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 1rem !important;
 }
 
 .dialog-form-grid {
@@ -442,8 +445,24 @@
 
 .dialog-input-group label {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: hsl(var(--foreground));
+}
+
+.dialog-input-group input,
+.dialog-input-group textarea {
+  background: hsl(var(--background)) !important;
+  border: 2px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: 0.625rem !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.dialog-input-group input:focus,
+.dialog-input-group textarea:focus {
+  border-color: hsl(217, 91%, 50%) !important;
+  box-shadow: 0 0 0 3px hsla(217, 91%, 50%, 0.15) !important;
+  outline: none !important;
 }
 
 .dialog-input-hint {
@@ -459,11 +478,12 @@
   padding: 1rem;
   background-color: hsl(var(--muted));
   border-radius: 0.625rem;
+  border: 1px solid hsl(var(--border));
 }
 
 .dialog-switch-label {
   font-size: 0.9375rem;
-  font-weight: 500;
+  font-weight: 600;
   color: hsl(var(--foreground));
 }
 
@@ -472,6 +492,21 @@
   gap: 0.75rem;
   justify-content: flex-end;
   margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.dialog-footer-buttons button[class*="outline"] {
+  background: hsl(var(--card)) !important;
+  border: 2px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.dialog-footer-buttons button:not([class*="outline"]) {
+  background: linear-gradient(135deg, hsl(217, 91%, 50%) 0%, hsl(200, 80%, 50%) 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 12px hsla(217, 91%, 50%, 0.3) !important;
 }
 
 /* ============================================
@@ -485,21 +520,22 @@
 }
 
 /* ============================================
-   Badge Styles
+   Badge Styles - Profesionales
    ============================================ */
 .badge-admin {
-  background-color: hsl(217, 91%, 50%);
-  color: hsl(0, 0%, 100%);
+  background: linear-gradient(135deg, hsl(217, 91%, 50%) 0%, hsl(200, 80%, 55%) 100%) !important;
+  color: white !important;
 }
 
 .badge-profesor {
-  background-color: hsl(142, 71%, 45%);
-  color: hsl(0, 0%, 100%);
+  background: linear-gradient(135deg, hsl(142, 71%, 45%) 0%, hsl(142, 71%, 55%) 100%) !important;
+  color: white !important;
 }
 
 .badge-estudiante {
-  background-color: hsla(217, 91%, 50%, 0.1);
-  color: hsl(217, 91%, 45%);
+  background: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
 }
 
 /* ============================================
@@ -510,7 +546,7 @@
   align-items: center;
   gap: 0.375rem;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   color: hsl(142, 71%, 40%);
 }
 
@@ -519,7 +555,7 @@
   align-items: center;
   gap: 0.375rem;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   color: hsl(var(--destructive));
 }
 
@@ -527,6 +563,45 @@
 .status-inactive svg {
   width: 1rem;
   height: 1rem;
+}
+
+/* ============================================
+   Admin Header Button
+   ============================================ */
+.admin-header .btn-primary,
+.admin-header button:not([class*="outline"]):not([class*="ghost"]) {
+  background: linear-gradient(135deg, hsl(217, 91%, 50%) 0%, hsl(200, 80%, 55%) 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 12px hsla(217, 91%, 50%, 0.3) !important;
+}
+
+.admin-header .btn-primary:hover {
+  box-shadow: 0 6px 16px hsla(217, 91%, 50%, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+/* Admin Card */
+.admin-users-card {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 1rem !important;
+}
+
+/* Icon Buttons in Admin */
+.admin-actions button,
+.btn-icon-action {
+  background: hsl(var(--card)) !important;
+  border: 2px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: 0.5rem !important;
+}
+
+.admin-actions button:hover,
+.btn-icon-action:hover {
+  background: linear-gradient(135deg, hsla(217, 91%, 50%, 0.1) 0%, hsla(200, 80%, 55%, 0.05) 100%) !important;
+  border-color: hsl(217, 91%, 60%) !important;
+  color: hsl(217, 91%, 50%) !important;
 }
 
 /* ============================================
