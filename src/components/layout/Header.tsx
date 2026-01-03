@@ -29,7 +29,6 @@ const navItems = [
   { path: '/progreso', label: 'Progreso', icon: TrendingUp, requireAuth: true },
   { path: '/noticias', label: 'Noticias', icon: Newspaper, requireAuth: true },
   { path: '/calendario', label: 'Calendario', icon: Calendar, requireAuth: true },
-  { path: '/contacto', label: 'Contacto', icon: Mail, public: true },
 ];
 
 export const Header: React.FC = () => {
