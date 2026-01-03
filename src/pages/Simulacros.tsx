@@ -549,35 +549,47 @@ const Simulacros: React.FC = () => {
 
   // Vista de resultados
   if (simulacroActivo && simulacroTerminado && resultadoFinal) {
+    const obtenerCalificacion = (puntaje: number): string => {
+      if (puntaje >= 90) return 'Excelente';
+      if (puntaje >= 80) return 'Muy Bien';
+      if (puntaje >= 70) return 'Bien';
+      if (puntaje >= 60) return 'Aprobado';
+      return 'Necesita Mejorar';
+    };
+
     return (
       <Layout>
         <div className="page-container resultado-container">
           <Card className="resultado-card">
             <CardHeader>
-              <div className="resultado-icon">
+              <div className={`resultado-icon ${resultadoFinal.puntaje >= 60 ? 'aprobado' : 'reprobado'}`}>
                 <Award />
               </div>
               <CardTitle>¡Simulacro Completado!</CardTitle>
               <CardDescription>{simulacroMateria?.nombre}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="resultado-score">
+              <div className={`resultado-score ${resultadoFinal.puntaje >= 60 ? 'aprobado' : 'reprobado'}`}>
                 {resultadoFinal.puntaje}
                 <span>/100</span>
               </div>
 
+              <p className="resultado-calificacion">
+                {obtenerCalificacion(resultadoFinal.puntaje)}
+              </p>
+
               <div className="resultado-stats">
-                <div className="resultado-stat">
+                <div className="resultado-stat correctas">
                   <CheckCircle className="success" />
                   <p className="resultado-stat-value">{resultadoFinal.correctas}</p>
                   <p className="resultado-stat-label">Correctas</p>
                 </div>
-                <div className="resultado-stat">
+                <div className="resultado-stat incorrectas">
                   <XCircle className="destructive" />
                   <p className="resultado-stat-value">{resultadoFinal.total - resultadoFinal.correctas}</p>
                   <p className="resultado-stat-label">Incorrectas</p>
                 </div>
-                <div className="resultado-stat">
+                <div className="resultado-stat tiempo">
                   <Clock className="primary" />
                   <p className="resultado-stat-value">
                     {Math.floor(resultadoFinal.tiempo / 60)}:{String(resultadoFinal.tiempo % 60).padStart(2, '0')}
@@ -586,12 +598,26 @@ const Simulacros: React.FC = () => {
                 </div>
               </div>
 
-              <p className="resultado-porcentaje">
-                <span>Porcentaje: </span>
-                <strong className={resultadoFinal.porcentaje >= 60 ? 'aprobado' : 'reprobado'}>
-                  {resultadoFinal.porcentaje}%
-                </strong>
-              </p>
+              <div className="resultado-resumen">
+                <div className="resumen-item">
+                  <span className="resumen-label">Preguntas Totales:</span>
+                  <span className="resumen-value">{resultadoFinal.total}</span>
+                </div>
+                <div className="resumen-item">
+                  <span className="resumen-label">Respuestas Correctas:</span>
+                  <span className="resumen-value success">{resultadoFinal.correctas}</span>
+                </div>
+                <div className="resumen-item">
+                  <span className="resumen-label">Respuestas Incorrectas:</span>
+                  <span className="resumen-value destructive">{resultadoFinal.total - resultadoFinal.correctas}</span>
+                </div>
+                <div className="resumen-item destacado">
+                  <span className="resumen-label">Calificación Final:</span>
+                  <span className={`resumen-value ${resultadoFinal.puntaje >= 60 ? 'aprobado' : 'reprobado'}`}>
+                    {resultadoFinal.puntaje}/100
+                  </span>
+                </div>
+              </div>
 
               <Progress value={resultadoFinal.porcentaje} className="resultado-progress" />
 
@@ -601,6 +627,7 @@ const Simulacros: React.FC = () => {
                   {preguntasSimulacro.map((p, index) => {
                     const detalle = resultadoVerificacion?.detalles[p.id];
                     const esCorrecta = detalle?.es_correcta ?? false;
+                    const respuestaUsuario = detalle?.respuesta_usuario;
                     return (
                       <div key={p.id} className={`revision-item ${esCorrecta ? 'correcta' : 'incorrecta'}`}>
                         <div className="revision-item-header">
@@ -612,6 +639,9 @@ const Simulacros: React.FC = () => {
                           <div className="revision-item-content">
                             <p className="titulo">Pregunta {index + 1}</p>
                             <p className="pregunta-text">{p.pregunta}</p>
+                            <p className="respuesta-usuario">
+                              Tu respuesta: {respuestaUsuario ? respuestaUsuario : 'Sin responder'}
+                            </p>
                             {!esCorrecta && detalle && (
                               <p className="respuesta-correcta">Respuesta correcta: {detalle.respuesta_correcta}</p>
                             )}
